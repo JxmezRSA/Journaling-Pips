@@ -6,14 +6,134 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		483E422F2FED9D29000AA049 /* Resources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 483E42272FED9D29000AA049 /* Resources/Assets.xcassets */; };
+		JP0000010000000000000001 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000011 /* GlassCard.swift */; };
+		JP0000010000000000000002 /* MetricCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000012 /* MetricCard.swift */; };
+		JP0000010000000000000003 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000013 /* SectionHeader.swift */; };
+		JP0000010000000000000004 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000014 /* DashboardViewModel.swift */; };
+		JP0000010000000000000005 /* TradeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000015 /* TradeViewModel.swift */; };
+		JP0000010000000000000006 /* TradeRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000016 /* TradeRepository.swift */; };
+		JP0000010000000000000007 /* TradeDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000017 /* TradeDetailViewModel.swift */; };
+		JP0000010000000000000008 /* AnalyticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000018 /* AnalyticsViewModel.swift */; };
+		JP0000010000000000000009 /* PlanRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000019 /* PlanRepository.swift */; };
+		JP000001000000000000000A /* PlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001A /* PlanViewModel.swift */; };
+		JP000001000000000000000B /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001B /* SettingsViewModel.swift */; };
+		JP000001000000000000000C /* AITradeCoachViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001C /* AITradeCoachViewModel.swift */; };
+		JP000001000000000000000D /* ReportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001D /* ReportViewModel.swift */; };
+		JP000001000000000000000E /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001E /* ReportGenerator.swift */; };
+		JP000001000000000000000F /* PDFExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001F /* PDFExportService.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		483E42002FED9962000AA049 /* Journaling Pips.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Journaling Pips.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		483E42272FED9D29000AA049 /* Resources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+		JP0000010000000000000011 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
+		JP0000010000000000000012 /* MetricCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCard.swift; sourceTree = "<group>"; };
+		JP0000010000000000000013 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
+		JP0000010000000000000014 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000015 /* TradeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000016 /* TradeRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeRepository.swift; sourceTree = "<group>"; };
+		JP0000010000000000000017 /* TradeDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeDetailViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000018 /* AnalyticsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000019 /* PlanRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRepository.swift; sourceTree = "<group>"; };
+		JP000001000000000000001A /* PlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanViewModel.swift; sourceTree = "<group>"; };
+		JP000001000000000000001B /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		JP000001000000000000001C /* AITradeCoachViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITradeCoachViewModel.swift; sourceTree = "<group>"; };
+		JP000001000000000000001D /* ReportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportViewModel.swift; sourceTree = "<group>"; };
+		JP000001000000000000001E /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
+		JP000001000000000000001F /* PDFExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExportService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		483E42022FED9962000AA049 /* Journaling Pips */ = {
+		483E42172FED9CD4000AA049 /* Models */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Journaling Pips";
+			path = Models;
+			sourceTree = "<group>";
+		};
+		483E42362FED9DDA000AA049 /* Utilities */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		483E42382FED9DE5000AA049 /* Navigation */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		483E42392FED9DEC000AA049 /* Recources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Recources;
+			sourceTree = "<group>";
+		};
+		483E423A2FED9F85000AA049 /* Dashboard */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		483E423B2FED9F99000AA049 /* Calendar */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Calendar;
+			sourceTree = "<group>";
+		};
+		483E423C2FED9FA4000AA049 /* AddTrade */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AddTrade;
+			sourceTree = "<group>";
+		};
+		483E423D2FED9FB2000AA049 /* TradingPlan */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TradingPlan;
+			sourceTree = "<group>";
+		};
+		483E423E2FED9FBE000AA049 /* Settings */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		483E423F2FED9FC7000AA049 /* Premium */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Premium;
+			sourceTree = "<group>";
+		};
+		483E42402FED9FCE000AA049 /* Onboarding */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		483E42412FED9FD6000AA049 /* Authentication */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		483E42422FED9FDE000AA049 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		483E429D2FEDA55D000AA049 /* Database */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Database;
+			sourceTree = "<group>";
+		};
+		483E429E2FEDA568000AA049 /* Authentication */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		483E429F2FEDA575000AA049 /* Analytics */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		483E42A02FEDA583000AA049 /* AI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AI;
+			sourceTree = "<group>";
+		};
+		483E42A12FEDA590000AA049 /* Export */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Export;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +152,18 @@
 		483E41F72FED9962000AA049 = {
 			isa = PBXGroup;
 			children = (
-				483E42022FED9962000AA049 /* Journaling Pips */,
+				483E42A82FEDA60E000AA049 /* Preview Content */,
+				483E42A72FEDA600000AA049 /* Extensions */,
+				483E42A62FEDA5E9000AA049 /* Managers */,
+				483E42272FED9D29000AA049 /* Resources/Assets.xcassets */,
+				483E42172FED9CD4000AA049 /* Models */,
+				483E42132FED9C70000AA049 /* ViewModels */,
+				483E42142FED9CA4000AA049 /* Services */,
+				483E42152FED9CB0000AA049 /* Components */,
+				483E42362FED9DDA000AA049 /* Utilities */,
+				483E42392FED9DEC000AA049 /* Recources */,
+				483E42382FED9DE5000AA049 /* Navigation */,
+				483E42122FED9C63000AA049 /* Views */,
 				483E42012FED9962000AA049 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +174,84 @@
 				483E42002FED9962000AA049 /* Journaling Pips.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		483E42122FED9C63000AA049 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				483E42422FED9FDE000AA049 /* Shared */,
+				483E42412FED9FD6000AA049 /* Authentication */,
+				483E42402FED9FCE000AA049 /* Onboarding */,
+				483E423F2FED9FC7000AA049 /* Premium */,
+				483E423E2FED9FBE000AA049 /* Settings */,
+				483E423D2FED9FB2000AA049 /* TradingPlan */,
+				483E423C2FED9FA4000AA049 /* AddTrade */,
+				483E423B2FED9F99000AA049 /* Calendar */,
+				483E423A2FED9F85000AA049 /* Dashboard */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		483E42132FED9C70000AA049 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				JP000001000000000000001C /* AITradeCoachViewModel.swift */,
+				JP0000010000000000000018 /* AnalyticsViewModel.swift */,
+				JP0000010000000000000014 /* DashboardViewModel.swift */,
+				JP000001000000000000001A /* PlanViewModel.swift */,
+				JP000001000000000000001D /* ReportViewModel.swift */,
+				JP000001000000000000001B /* SettingsViewModel.swift */,
+				JP0000010000000000000017 /* TradeDetailViewModel.swift */,
+				JP0000010000000000000015 /* TradeViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		483E42142FED9CA4000AA049 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				JP000001000000000000001F /* PDFExportService.swift */,
+				JP0000010000000000000019 /* PlanRepository.swift */,
+				JP000001000000000000001E /* ReportGenerator.swift */,
+				JP0000010000000000000016 /* TradeRepository.swift */,
+				483E42A12FEDA590000AA049 /* Export */,
+				483E42A02FEDA583000AA049 /* AI */,
+				483E429F2FEDA575000AA049 /* Analytics */,
+				483E429E2FEDA568000AA049 /* Authentication */,
+				483E429D2FEDA55D000AA049 /* Database */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		483E42152FED9CB0000AA049 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				JP0000010000000000000011 /* GlassCard.swift */,
+				JP0000010000000000000012 /* MetricCard.swift */,
+				JP0000010000000000000013 /* SectionHeader.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		483E42A62FEDA5E9000AA049 /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		483E42A72FEDA600000AA049 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		483E42A82FEDA60E000AA049 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -61,7 +270,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				483E42022FED9962000AA049 /* Journaling Pips */,
+				483E42172FED9CD4000AA049 /* Models */,
+				483E42362FED9DDA000AA049 /* Utilities */,
+				483E42382FED9DE5000AA049 /* Navigation */,
+				483E42392FED9DEC000AA049 /* Recources */,
+				483E423A2FED9F85000AA049 /* Dashboard */,
+				483E423B2FED9F99000AA049 /* Calendar */,
+				483E423C2FED9FA4000AA049 /* AddTrade */,
+				483E423D2FED9FB2000AA049 /* TradingPlan */,
+				483E423E2FED9FBE000AA049 /* Settings */,
+				483E423F2FED9FC7000AA049 /* Premium */,
+				483E42402FED9FCE000AA049 /* Onboarding */,
+				483E42412FED9FD6000AA049 /* Authentication */,
+				483E42422FED9FDE000AA049 /* Shared */,
 			);
 			name = "Journaling Pips";
 			packageProductDependencies = (
@@ -109,6 +330,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				483E422F2FED9D29000AA049 /* Resources/Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +341,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				JP000001000000000000000C /* AITradeCoachViewModel.swift in Sources */,
+				JP0000010000000000000008 /* AnalyticsViewModel.swift in Sources */,
+				JP0000010000000000000004 /* DashboardViewModel.swift in Sources */,
+				JP000001000000000000000A /* PlanViewModel.swift in Sources */,
+				JP000001000000000000000D /* ReportViewModel.swift in Sources */,
+				JP000001000000000000000B /* SettingsViewModel.swift in Sources */,
+				JP0000010000000000000007 /* TradeDetailViewModel.swift in Sources */,
+				JP0000010000000000000005 /* TradeViewModel.swift in Sources */,
+				JP000001000000000000000F /* PDFExportService.swift in Sources */,
+				JP0000010000000000000009 /* PlanRepository.swift in Sources */,
+				JP000001000000000000000E /* ReportGenerator.swift in Sources */,
+				JP0000010000000000000006 /* TradeRepository.swift in Sources */,
+				JP0000010000000000000001 /* GlassCard.swift in Sources */,
+				JP0000010000000000000002 /* MetricCard.swift in Sources */,
+				JP0000010000000000000003 /* SectionHeader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,12 +498,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jamesscharnick.Journaling-Pips";
+				PRODUCT_BUNDLE_IDENTIFIER = jamesscharnick.JournalingPips;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -293,12 +531,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jamesscharnick.Journaling-Pips";
+				PRODUCT_BUNDLE_IDENTIFIER = jamesscharnick.JournalingPips;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
