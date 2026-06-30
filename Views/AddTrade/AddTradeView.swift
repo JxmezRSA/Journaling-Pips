@@ -1349,6 +1349,18 @@ struct AddTradeView: View {
     }
 
     private func screenshotCard(_ slot: Trade.ScreenshotSlot, data: Data?, item: Binding<PhotosPickerItem?>) -> some View {
+        let currentStatus: ScreenshotStatus = {
+            switch slot {
+            case .beforeEntry:
+                return beforeScreenshotStatus
+            case .duringTrade:
+                return duringScreenshotStatus
+            case .afterExit:
+                return afterScreenshotStatus
+            }
+        }()
+        let statusText = data == nil ? "No image selected" : (currentStatus == .queued ? "Queued for sync" : "Image selected")
+
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -1427,6 +1439,10 @@ struct AddTradeView: View {
                     .buttonStyle(.plain)
                 }
             }
+
+            Text(statusText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(currentStatus == .queued ? JPColors.warning : JPColors.secondaryText)
         }
         .padding(14)
         .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
