@@ -104,6 +104,37 @@ struct AddTradeView: View {
         let data: Data
     }
 
+    private enum ScreenshotStatus: String {
+        case empty = "Empty"
+        case selected = "Selected"
+        case uploading = "Uploading..."
+        case uploaded = "Uploaded"
+        case failed = "Upload failed"
+        case queued = "Queued for sync"
+
+        var icon: String {
+            switch self {
+            case .empty: return "circle"
+            case .selected: return "checkmark.circle.fill"
+            case .uploading: return "arrow.triangle.2.circlepath"
+            case .uploaded: return "checkmark.icloud.fill"
+            case .failed: return "exclamationmark.triangle.fill"
+            case .queued: return "clock.badge.checkmark"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .empty: return JPColors.secondaryText
+            case .selected: return JPColors.accent
+            case .uploading: return JPColors.warning
+            case .uploaded: return JPColors.profit
+            case .failed: return JPColors.loss
+            case .queued: return JPColors.warning
+            }
+        }
+    }
+
     private enum AddTradeStartupError: LocalizedError {
         case invalidDraftData
 
@@ -162,6 +193,9 @@ struct AddTradeView: View {
     @State private var beforePhotoItem: PhotosPickerItem?
     @State private var duringPhotoItem: PhotosPickerItem?
     @State private var afterPhotoItem: PhotosPickerItem?
+    @State private var beforeScreenshotStatus = ScreenshotStatus.empty
+    @State private var duringScreenshotStatus = ScreenshotStatus.empty
+    @State private var afterScreenshotStatus = ScreenshotStatus.empty
     @State private var activePreview: PreviewImage?
     @State private var expandedSections = Set(TradeSection.allCases)
     @State private var selectedSection = TradeSection.basics
@@ -240,10 +274,11 @@ struct AddTradeView: View {
                         lessonsSection
                         aiCoachPreviewSection
                         readyToSaveSection
+                        simpleSaveSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 72)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -693,6 +728,162 @@ struct AddTradeView: View {
         .premiumEntrance(active: didAppear, delay: 0.22)
     }
 
+    private var simpleSaveSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                didAttemptSave = true
+                saveTrade()
+            } label: {
+                Text(simpleSaveButtonTitle)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(JPColors.background)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(simpleSaveButtonColor, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+            .disabled(isSaving || saveSucceeded)
+
+            Text(simpleSaveStatusText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(simpleSaveStatusColor)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(JPColors.border, lineWidth: 1))
+    }
+
+    private var simpleSaveButtonTitle: String {
+        if isSaving { return "Saving..." }
+        if saveSucceeded { return "Trade saved" }
+        return "Save Trade"
+    }
+
+    private var simpleSaveButtonColor: Color {
+        if isSaving { return JPColors.secondaryText }
+        if saveSucceeded { return JPColors.profit }
+        return isFormValid ? JPColors.accent : JPColors.warning
+    }
+
+    private var simpleSaveStatusText: String {
+        if isSaving { return "Saving..." }
+        if saveSucceeded { return "Trade saved" }
+        if showErrorToast { return "Couldn't save trade. Please check your fields." }
+        if didAttemptSave && !isFormValid { return "Please complete the required fields before saving." }
+        return isFormValid ? "Ready to save." : "Required fields are still missing."
+    }
+
+    private var simpleSaveStatusColor: Color {
+        if saveSucceeded { return JPColors.profit }
+        if showErrorToast { return JPColors.loss }
+        if didAttemptSave && !isFormValid { return JPColors.warning }
+        return JPColors.secondaryText
+    }
+
+    private var bottomSaveSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button {
+                didAttemptSave = true
+                guard isFormValid else {
+                    JPHaptics.notify(.warning)
+                    expandInvalidSections()
+                    return
+                }
+                saveTrade()
+            } label: {
+                HStack(spacing: 12) {
+                    if isSaving {
+                        ProgressView()
+                            .tint(JPColors.background)
+                    } else if saveSucceeded {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.headline.weight(.black))
+                            .symbolEffect(.bounce, value: saveSucceeded)
+                    } else {
+                        Image(systemName: "checkmark")
+                            .font(.headline.weight(.black))
+                    }
+
+                    Text(bottomSaveButtonTitle)
+                        .font(.headline.weight(.black))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+                .foregroundStyle(JPColors.background)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 58)
+                .background(bottomSaveButtonBackground, in: Capsule())
+                .shadow(color: bottomSaveButtonShadow, radius: 18, x: 0, y: 10)
+            }
+            .buttonStyle(ScalingButtonStyle())
+            .disabled(isSaving || saveSucceeded)
+            .accessibilityLabel(bottomSaveAccessibilityLabel)
+
+            if saveSucceeded {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Trade saved")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(JPColors.profit)
+                    Text("Your journal is saved locally. Screenshots will sync in the background when available.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(JPColors.secondaryText)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            } else if showErrorToast {
+                Text("Couldn't save trade. Please check your fields.")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(JPColors.loss)
+                    .transition(.opacity)
+            } else if didAttemptSave && !isFormValid {
+                Text("Complete the required fields before saving. \(remainingRequiredFieldCount) item\(remainingRequiredFieldCount == 1 ? "" : "s") still need attention.")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(JPColors.warning)
+                    .transition(.opacity)
+            } else {
+                Text(isFormValid ? "Ready to save. Local storage happens first; cloud sync can finish later." : "Complete the required fields to unlock Save Trade.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(JPColors.secondaryText)
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(isFormValid ? JPColors.accent.opacity(0.28) : JPColors.border, lineWidth: 1)
+        )
+        .animation(.spring(response: 0.38, dampingFraction: 0.84), value: isSaving)
+        .animation(.spring(response: 0.38, dampingFraction: 0.84), value: saveSucceeded)
+        .animation(.spring(response: 0.38, dampingFraction: 0.84), value: isFormValid)
+    }
+
+    private var bottomSaveButtonTitle: String {
+        if isSaving { return "Saving..." }
+        if saveSucceeded { return "Trade saved" }
+        return "Save Trade"
+    }
+
+    private var bottomSaveButtonBackground: LinearGradient {
+        if saveSucceeded {
+            return LinearGradient(colors: [JPColors.profit, JPColors.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if isFormValid {
+            return LinearGradient(colors: [JPColors.profit.opacity(0.98), JPColors.accent.opacity(0.95)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        return LinearGradient(colors: [JPColors.graphite.opacity(0.92), JPColors.surface], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private var bottomSaveButtonShadow: Color {
+        if saveSucceeded { return JPColors.profit.opacity(0.34) }
+        return isFormValid ? JPColors.accent.opacity(0.24) : Color.black.opacity(0.24)
+    }
+
+    private var bottomSaveAccessibilityLabel: String {
+        if isSaving { return "Saving trade" }
+        if saveSucceeded { return "Trade saved" }
+        if isFormValid { return "Save trade" }
+        return "Save trade unavailable. Required fields are missing."
+    }
+
     private var stickySaveActionBar: some View {
         VStack(spacing: 0) {
             floatingSaveCapsule
@@ -896,12 +1087,43 @@ struct AddTradeView: View {
     }
 
     private var executionSummaryCard: some View {
-        LazyVGrid(columns: twoColumns, spacing: 12) {
-            summaryTile("Pips", pipsDisplay, icon: "ruler", tint: JPColors.blue)
-            summaryTile("Holding", holdingTimeText, icon: "timer", tint: JPColors.warning)
-            summaryTile("Net Profit", currency(netProfit), icon: "banknote.fill", tint: netProfit >= 0 ? JPColors.profit : JPColors.loss)
-            summaryTile("R Multiple", riskRewardDisplay, icon: "target", tint: rrColor)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Pips")
+                    .foregroundStyle(JPColors.secondaryText)
+                Spacer()
+                Text(pipsDisplay)
+                    .foregroundStyle(JPColors.primaryText)
+            }
+
+            HStack {
+                Text("Holding")
+                    .foregroundStyle(JPColors.secondaryText)
+                Spacer()
+                Text(holdingTimeText)
+                    .foregroundStyle(JPColors.primaryText)
+            }
+
+            HStack {
+                Text("Net Profit")
+                    .foregroundStyle(JPColors.secondaryText)
+                Spacer()
+                Text(currency(netProfit))
+                    .foregroundStyle(JPColors.primaryText)
+            }
+
+            HStack {
+                Text("R Multiple")
+                    .foregroundStyle(JPColors.secondaryText)
+                Spacer()
+                Text(riskRewardDisplay)
+                    .foregroundStyle(JPColors.primaryText)
+            }
         }
+        .font(.subheadline.weight(.semibold))
+        .padding(14)
+        .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(JPColors.border, lineWidth: 1))
     }
 
     private var quickSetupChips: some View {
@@ -1127,7 +1349,7 @@ struct AddTradeView: View {
     }
 
     private func screenshotCard(_ slot: Trade.ScreenshotSlot, data: Data?, item: Binding<PhotosPickerItem?>) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(slot.rawValue)
@@ -1192,6 +1414,7 @@ struct AddTradeView: View {
                         JPHaptics.notify(.warning)
                         withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) {
                             setImageData(nil, for: slot)
+                            setScreenshotStatus(.empty, for: slot)
                         }
                     } label: {
                         Label("Delete", systemImage: "trash")
@@ -1708,6 +1931,7 @@ struct AddTradeView: View {
         }
 
         if didSave {
+            markScreenshotsQueuedForSync()
             JPHaptics.notify(.success)
             clearDraft()
             withAnimation(.spring(response: 0.42, dampingFraction: 0.84)) {
@@ -1939,13 +2163,20 @@ struct AddTradeView: View {
 
     private func loadPhoto(_ item: PhotosPickerItem?, for slot: Trade.ScreenshotSlot) {
         guard let item else { return }
+        setScreenshotStatus(.uploading, for: slot)
         Task {
-            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+            guard let data = try? await item.loadTransferable(type: Data.self) else {
+                await MainActor.run {
+                    setScreenshotStatus(.failed, for: slot)
+                }
+                return
+            }
             let compressed = compressImageData(data) ?? data
             await MainActor.run {
                 JPHaptics.notify(.success)
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
                     setImageData(compressed, for: slot)
+                    setScreenshotStatus(.selected, for: slot)
                 }
             }
         }
@@ -1962,6 +2193,51 @@ struct AddTradeView: View {
         case .afterExit:
             afterExitImageData = data
             afterPhotoItem = nil
+        }
+    }
+
+    private func screenshotStatus(for slot: Trade.ScreenshotSlot, data: Data?) -> ScreenshotStatus {
+        let currentStatus: ScreenshotStatus
+        switch slot {
+        case .beforeEntry:
+            currentStatus = beforeScreenshotStatus
+        case .duringTrade:
+            currentStatus = duringScreenshotStatus
+        case .afterExit:
+            currentStatus = afterScreenshotStatus
+        }
+
+        if data == nil, currentStatus != .failed, currentStatus != .uploading {
+            return .empty
+        }
+
+        if data != nil, currentStatus == .empty {
+            return .selected
+        }
+
+        return currentStatus
+    }
+
+    private func setScreenshotStatus(_ status: ScreenshotStatus, for slot: Trade.ScreenshotSlot) {
+        switch slot {
+        case .beforeEntry:
+            beforeScreenshotStatus = status
+        case .duringTrade:
+            duringScreenshotStatus = status
+        case .afterExit:
+            afterScreenshotStatus = status
+        }
+    }
+
+    private func markScreenshotsQueuedForSync() {
+        if beforeEntryImageData != nil {
+            setScreenshotStatus(.queued, for: .beforeEntry)
+        }
+        if duringTradeImageData != nil {
+            setScreenshotStatus(.queued, for: .duringTrade)
+        }
+        if afterExitImageData != nil {
+            setScreenshotStatus(.queued, for: .afterExit)
         }
     }
 
