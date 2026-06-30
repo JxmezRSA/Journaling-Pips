@@ -62,7 +62,7 @@ final class TradeDetailViewModel: ObservableObject {
         )
 
         if didSave {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            JPHaptics.notify(.success)
             showSavedConfirmation = true
         }
     }

@@ -9,6 +9,10 @@ final class TradeViewModel: ObservableObject {
 
     private var repository: TradeRepository?
 
+    init() {
+        debugPrint("ADD TRADE VIEWMODEL INIT")
+    }
+
     var totalNetProfitLoss: Double {
         trades.reduce(0) { $0 + $1.profitLoss }
     }
@@ -36,6 +40,7 @@ final class TradeViewModel: ObservableObject {
     func configure(context: ModelContext) {
         if repository == nil {
             repository = TradeRepository(context: context)
+            debugPrint("ADD TRADE MODEL CONTEXT READY")
         }
 
         fetchTrades()
@@ -75,11 +80,27 @@ final class TradeViewModel: ObservableObject {
         marketContext: String = "",
         executionReview: String = "",
         lessonsLearned: String = "",
+        beforeEntryImageData: Data? = nil,
+        duringTradeImageData: Data? = nil,
+        afterExitImageData: Data? = nil,
         tradeOpenTime: Date? = nil,
         tradeCloseTime: Date? = nil
     ) -> Bool {
         guard let repository else {
             errorMessage = "Trade storage is not ready."
+            return false
+        }
+
+        if let validationMessage = validateTradeInput(
+            pair: pair,
+            entryPrice: entryPrice,
+            stopLoss: stopLoss,
+            takeProfit: takeProfit,
+            lotSize: lotSize,
+            riskPercent: riskPercent,
+            date: tradeOpenTime ?? Date()
+        ) {
+            errorMessage = validationMessage
             return false
         }
 
@@ -103,12 +124,17 @@ final class TradeViewModel: ObservableObject {
             marketContext: marketContext.trimmingCharacters(in: .whitespacesAndNewlines),
             executionReview: executionReview.trimmingCharacters(in: .whitespacesAndNewlines),
             lessonsLearned: lessonsLearned.trimmingCharacters(in: .whitespacesAndNewlines),
+            beforeEntryImageData: beforeEntryImageData,
+            duringTradeImageData: duringTradeImageData,
+            afterExitImageData: afterExitImageData,
             tradeOpenTime: tradeOpenTime,
             tradeCloseTime: tradeCloseTime
         )
 
         do {
             try repository.saveTrade(trade)
+            DisciplineTracker(context: repository.context).recordTradeSaved(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeSaved)
             fetchTrades()
             return true
         } catch {
@@ -139,9 +165,25 @@ final class TradeViewModel: ObservableObject {
         marketContext: String,
         executionReview: String,
         lessonsLearned: String,
+        beforeEntryImageData: Data?,
+        duringTradeImageData: Data?,
+        afterExitImageData: Data?,
         tradeOpenTime: Date?,
         tradeCloseTime: Date?
     ) -> Bool {
+        if let validationMessage = validateTradeInput(
+            pair: pair,
+            entryPrice: entryPrice,
+            stopLoss: stopLoss,
+            takeProfit: takeProfit,
+            lotSize: lotSize,
+            riskPercent: riskPercent,
+            date: tradeOpenTime ?? trade.date
+        ) {
+            errorMessage = validationMessage
+            return false
+        }
+
         trade.pair = pair.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         trade.direction = direction
         trade.entryPrice = entryPrice
@@ -161,6 +203,9 @@ final class TradeViewModel: ObservableObject {
         trade.marketContext = marketContext.trimmingCharacters(in: .whitespacesAndNewlines)
         trade.executionReview = executionReview.trimmingCharacters(in: .whitespacesAndNewlines)
         trade.lessonsLearned = lessonsLearned.trimmingCharacters(in: .whitespacesAndNewlines)
+        trade.beforeEntryImageData = beforeEntryImageData
+        trade.duringTradeImageData = duringTradeImageData
+        trade.afterExitImageData = afterExitImageData
         trade.tradeOpenTime = tradeOpenTime
         trade.tradeCloseTime = tradeCloseTime
 
@@ -171,6 +216,8 @@ final class TradeViewModel: ObservableObject {
 
         do {
             try repository.updateTrade(trade)
+            DisciplineTracker(context: repository.context).recordTradeReviewCompleted(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeEdited)
             fetchTrades()
             return true
         } catch {
@@ -209,6 +256,7 @@ final class TradeViewModel: ObservableObject {
 
         do {
             try repository.updateTrade(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeEdited)
             fetchTrades()
             return true
         } catch {
@@ -225,6 +273,7 @@ final class TradeViewModel: ObservableObject {
 
         do {
             try repository.updateTrade(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeEdited)
             fetchTrades()
         } catch {
             errorMessage = "Unable to update trade."
@@ -249,6 +298,7 @@ final class TradeViewModel: ObservableObject {
 
         do {
             try repository.updateTrade(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeEdited)
             fetchTrades()
             return true
         } catch {
@@ -265,6 +315,7 @@ final class TradeViewModel: ObservableObject {
 
         do {
             try repository.deleteTrade(trade)
+            IntelligenceEngine(context: repository.context).observe(.tradeDeleted)
             fetchTrades()
         } catch {
             errorMessage = "Unable to delete trade."
@@ -277,5 +328,50 @@ final class TradeViewModel: ObservableObject {
         return trades
             .filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: component) }
             .reduce(0) { $0 + $1.profitLoss }
+    }
+
+    private func validateTradeInput(
+        pair: String,
+        entryPrice: Double,
+        stopLoss: Double,
+        takeProfit: Double,
+        lotSize: Double,
+        riskPercent: Double,
+        date: Date?
+    ) -> String? {
+        let trimmedPair = pair.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPair.isEmpty else {
+            return "Pair is required."
+        }
+
+        guard entryPrice.isFinite, entryPrice > 0 else {
+            return "Entry price must be greater than zero."
+        }
+
+        guard stopLoss.isFinite, stopLoss > 0 else {
+            return "Stop loss must be greater than zero."
+        }
+
+        guard takeProfit.isFinite, takeProfit > 0 else {
+            return "Take profit must be greater than zero."
+        }
+
+        guard abs(entryPrice - stopLoss) > 0.000_000_1 else {
+            return "Entry price cannot equal stop loss."
+        }
+
+        guard lotSize.isFinite, lotSize > 0 else {
+            return "Lot size must be greater than zero."
+        }
+
+        guard riskPercent.isFinite, riskPercent > 0 else {
+            return "Risk percent must be greater than zero."
+        }
+
+        guard date != nil else {
+            return "Trade date is required."
+        }
+
+        return nil
     }
 }

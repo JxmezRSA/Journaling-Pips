@@ -27,3 +27,21 @@ enum JPColors {
         endPoint: .bottomTrailing
     )
 }
+
+enum JPDesign {
+    static let cardRadius: CGFloat = 28
+    static let controlRadius: CGFloat = 18
+    static let compactRadius: CGFloat = 14
+    static let cardPadding: CGFloat = 20
+    static let sectionSpacing: CGFloat = 28
+    static let cardSpacing: CGFloat = 14
+    static let iconSize: CGFloat = 44
+    static let minimumTouchTarget: CGFloat = 44
+
+    static let cardShadow = Color.black.opacity(0.34)
+    static let accentShadow = JPColors.accent.opacity(0.08)
+
+    static let quickSpring = Animation.spring(response: 0.26, dampingFraction: 0.78)
+    static let smoothSpring = Animation.spring(response: 0.46, dampingFraction: 0.86)
+    static let slowSpring = Animation.spring(response: 0.62, dampingFraction: 0.86)
+}

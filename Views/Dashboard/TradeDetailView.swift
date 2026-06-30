@@ -1,5 +1,7 @@
 import CoreTransferable
 import PhotosUI
+import Supabase
+import SwiftData
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -7,12 +9,19 @@ import UniformTypeIdentifiers
 struct TradeDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var tradeViewModel: TradeViewModel
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel: TradeDetailViewModel
+    @StateObject private var aiCoachViewModel = AITradeCoachViewModel()
+    @StateObject private var insightViewModel = InsightViewModel()
+    @Environment(\.modelContext) private var modelContext
     @State private var activeForm: TradeDetailForm?
     @State private var showDeleteConfirmation = false
     @State private var screenshotToDelete: Trade.ScreenshotSlot?
-    @State private var activeScreenshot: ScreenshotViewerItem?
+    @State private var activeScreenshot: ScreenshotGallerySelection?
+    @State private var cloudScreenshots: [Trade.ScreenshotSlot: Data] = [:]
+    @State private var isLoadingCloudScreenshots = false
     @State private var didAppear = false
+    @State private var showPaywall = false
 
     let trade: Trade
 
@@ -28,12 +37,15 @@ struct TradeDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 26) {
                     header
+                    relatedInsightsSection
                     tradeInformationSection
                     executionReviewSection
                     strategyReviewSection
                     journalSection
                     screenshotsSection
                     timelineSection
+                    replaySection
+                    aiReviewSection
                     aiCoachSection
                     bottomActions
                 }
@@ -53,6 +65,7 @@ struct TradeDetailView: View {
         .alert("Delete Trade?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
+                JPHaptics.notify(.warning)
                 tradeViewModel.deleteTrade(trade)
                 dismiss()
             }
@@ -62,9 +75,7 @@ struct TradeDetailView: View {
         .confirmationDialog("Delete Screenshot?", isPresented: deleteScreenshotBinding, titleVisibility: .visible) {
             Button("Delete Screenshot", role: .destructive) {
                 if let screenshotToDelete {
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                        _ = tradeViewModel.updateScreenshot(trade, slot: screenshotToDelete, imageData: nil)
-                    }
+                    deleteScreenshot(screenshotToDelete)
                     self.screenshotToDelete = nil
                 }
             }
@@ -76,7 +87,11 @@ struct TradeDetailView: View {
             Text("This removes the image from this trade only.")
         }
         .fullScreenCover(item: $activeScreenshot) { item in
-            ScreenshotFullscreenViewer(item: item)
+            ScreenshotFullscreenGallery(items: galleryItems, initialSlot: item.slot)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PremiumPaywallView()
+                .environmentObject(subscriptionManager)
         }
         .alert("Review Saved", isPresented: $viewModel.showSavedConfirmation) {
             Button("Done", role: .cancel) { }
@@ -84,9 +99,15 @@ struct TradeDetailView: View {
             Text("Your execution review has been updated.")
         }
         .onAppear {
+            insightViewModel.configure(context: modelContext)
+            aiCoachViewModel.configure(context: modelContext, trade: trade)
             withAnimation(.spring(response: 0.48, dampingFraction: 0.88)) {
                 didAppear = true
             }
+            loadCloudScreenshotsIfNeeded()
+        }
+        .onChange(of: trade.remoteId) { _, _ in
+            loadCloudScreenshotsIfNeeded()
         }
     }
 
@@ -135,6 +156,20 @@ struct TradeDetailView: View {
         .shadow(color: outcomeColor.opacity(0.14), radius: 24, x: 0, y: 16)
         .opacity(didAppear ? 1 : 0)
         .offset(y: didAppear ? 0 : 18)
+    }
+
+    @ViewBuilder
+    private var relatedInsightsSection: some View {
+        let insights = insightViewModel.insights(for: trade)
+        if !insights.isEmpty {
+            section(title: "Related AI Insights", subtitle: "How this trade connects to your wider patterns") {
+                VStack(spacing: 12) {
+                    ForEach(insights.prefix(3)) { insight in
+                        InsightCard(insight: insight)
+                    }
+                }
+            }
+        }
     }
 
     private var tradeInformationSection: some View {
@@ -301,21 +336,22 @@ struct TradeDetailView: View {
                     }
                 }
 
-                ForEach(Trade.ScreenshotSlot.allCases) { slot in
-                    ScreenshotTimelineCard(
-                        slot: slot,
-                        imageData: screenshotData(for: slot),
-                        onImageSelected: { data in
-                            saveScreenshot(data, for: slot)
-                        },
+	                ForEach(Trade.ScreenshotSlot.allCases) { slot in
+	                    ScreenshotTimelineCard(
+	                        slot: slot,
+	                        imageData: screenshotData(for: slot),
+                            isLoading: isLoadingCloudScreenshots && localScreenshotData(for: slot) == nil,
+	                        onImageSelected: { data in
+	                            saveScreenshot(data, for: slot)
+	                        },
                         onDelete: {
                             screenshotToDelete = slot
-                        },
-                        onView: { data in
-                            activeScreenshot = ScreenshotViewerItem(slot: slot, imageData: data)
-                        }
-                    )
-                }
+	                        },
+	                        onView: { data in
+	                            activeScreenshot = ScreenshotGallerySelection(slot: slot)
+	                        }
+	                    )
+	                }
             }
         }
     }
@@ -333,7 +369,7 @@ struct TradeDetailView: View {
     }
 
     private var aiCoachSection: some View {
-        NavigationLink {
+        premiumNavigation {
             AITradeCoachView(trade: trade)
         } label: {
             HStack(spacing: 14) {
@@ -377,6 +413,175 @@ struct TradeDetailView: View {
             )
         }
         .buttonStyle(ScalingButtonStyle())
+    }
+
+    private var aiReviewSection: some View {
+        section(title: "AI Trade Coach", subtitle: "Backend-ready review with local preview fallback") {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .top, spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .stroke(JPColors.border, lineWidth: 9)
+                                .frame(width: 78, height: 78)
+                            Circle()
+                                .trim(from: 0, to: CGFloat(aiCoachViewModel.overallScore) / 100)
+                                .stroke(scoreColor(aiCoachViewModel.overallScore), style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                                .frame(width: 78, height: 78)
+                                .rotationEffect(.degrees(-90))
+                            Text("\(aiCoachViewModel.overallScore)")
+                                .font(.title2.weight(.black))
+                                .foregroundStyle(scoreColor(aiCoachViewModel.overallScore))
+                        }
+
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(aiCoachViewModel.hasSavedReview || aiCoachViewModel.hasGeneratedReview ? "AI Review Ready" : "Analyze Trade")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(JPColors.primaryText)
+
+                            Text(aiCoachViewModel.hasSavedReview ? aiCoachViewModel.gradeSummary : "Generate a coaching review from execution, risk, psychology, journal notes, mistakes, and screenshot metadata.")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+
+                    if aiCoachViewModel.isAnalyzing {
+                        PremiumLoadingBlock(
+                            title: "Analyzing trade",
+                            subtitle: "Preparing coach feedback without blocking your journal.",
+                            symbolName: "sparkles"
+                        )
+                    }
+
+                    if let error = aiCoachViewModel.errorMessage {
+                        Text(error)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(JPColors.warning)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    Button {
+                        aiCoachViewModel.analyzeAndSaveReview(for: trade)
+                    } label: {
+                        Label(aiCoachViewModel.hasSavedReview ? "Analyze Again" : "Analyze Trade", systemImage: aiCoachViewModel.isAnalyzing ? "hourglass" : "sparkles")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.background)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .disabled(aiCoachViewModel.isAnalyzing)
+                    .buttonStyle(ScalingButtonStyle())
+
+                    if aiCoachViewModel.hasSavedReview || aiCoachViewModel.hasGeneratedReview {
+                        Divider().overlay(JPColors.border)
+
+                        LazyVGrid(columns: twoColumns, spacing: 10) {
+                            aiScoreTile("Execution", score(named: "Execution"), JPColors.accent)
+                            aiScoreTile("Risk", score(named: "Risk Management"), JPColors.warning)
+                            aiScoreTile("Psychology", score(named: "Psychology"), JPColors.purple)
+                            aiScoreTile("Discipline", score(named: "Strategy Discipline"), JPColors.blue)
+                        }
+
+                        aiReviewList("Strengths", aiCoachViewModel.strengths, icon: "checkmark.seal.fill", tint: JPColors.profit)
+                        aiReviewList("Mistakes", trade.mistakeTags.map(\.rawValue), icon: "exclamationmark.triangle.fill", tint: JPColors.warning)
+                        aiReviewList("Improvement Plan", aiCoachViewModel.improvements, icon: "arrow.up.forward.circle.fill", tint: JPColors.accent)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Coach Summary")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .textCase(.uppercase)
+                            Text(aiCoachViewModel.gradeSummary)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(JPColors.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text("Repeat Next Time")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .textCase(.uppercase)
+                                .padding(.top, 4)
+                            Text(aiCoachViewModel.strengths.first ?? "Repeat the cleanest part of your process with the same discipline.")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(14)
+                        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    private var replaySection: some View {
+        premiumNavigation {
+            ReplayStudioView(trade: trade)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "play.rectangle.on.rectangle.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(JPColors.background)
+                    .frame(width: 50, height: 50)
+                    .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                    .shadow(color: JPColors.accent.opacity(0.24), radius: 16, x: 0, y: 8)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Replay Trade")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(JPColors.primaryText)
+
+                    Text("Review this trade as a visual story")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(JPColors.secondaryText)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(JPColors.secondaryText)
+                    .frame(width: 32, height: 32)
+                    .background(JPColors.graphite, in: Circle())
+            }
+            .padding(18)
+            .background(
+                LinearGradient(
+                    colors: [JPColors.elevatedSurface.opacity(0.96), JPColors.surface.opacity(0.90)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(JPColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(ScalingButtonStyle())
+    }
+
+    @ViewBuilder
+    private func premiumNavigation<Destination: View, Label: View>(
+        @ViewBuilder destination: () -> Destination,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        if subscriptionManager.isPremiumUnlocked {
+            NavigationLink(destination: destination, label: label)
+        } else {
+            Button {
+                showPaywall = true
+                JPHaptics.notify(.warning)
+            } label: {
+                label()
+            }
+        }
     }
 
     private var bottomActions: some View {
@@ -430,6 +635,13 @@ struct TradeDetailView: View {
         Trade.ScreenshotSlot.allCases.contains { screenshotData(for: $0) != nil }
     }
 
+    private var galleryItems: [ScreenshotViewerItem] {
+        Trade.ScreenshotSlot.allCases.compactMap { slot in
+            guard let data = screenshotData(for: slot) else { return nil }
+            return ScreenshotViewerItem(slot: slot, imageData: data)
+        }
+    }
+
     private var deleteScreenshotBinding: Binding<Bool> {
         Binding(
             get: { screenshotToDelete != nil },
@@ -465,6 +677,10 @@ struct TradeDetailView: View {
     }
 
     private func screenshotData(for slot: Trade.ScreenshotSlot) -> Data? {
+        localScreenshotData(for: slot) ?? cloudScreenshots[slot]
+    }
+
+    private func localScreenshotData(for slot: Trade.ScreenshotSlot) -> Data? {
         switch slot {
         case .beforeEntry:
             return trade.beforeEntryImageData
@@ -478,9 +694,225 @@ struct TradeDetailView: View {
     private func saveScreenshot(_ data: Data, for slot: Trade.ScreenshotSlot) {
         withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
             _ = tradeViewModel.updateScreenshot(trade, slot: slot, imageData: data)
+            cloudScreenshots[slot] = nil
         }
 
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        JPHaptics.notify(.success)
+    }
+
+    private func deleteScreenshot(_ slot: Trade.ScreenshotSlot) {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            _ = tradeViewModel.updateScreenshot(trade, slot: slot, imageData: nil)
+            cloudScreenshots[slot] = nil
+        }
+
+        JPHaptics.impact(.medium)
+        Task {
+            await deleteCloudScreenshotIfPossible(slot)
+        }
+    }
+
+    private func loadCloudScreenshotsIfNeeded() {
+        guard isLoadingCloudScreenshots == false else { return }
+        guard SupabaseClientManager.shared.isConfigured else { return }
+        guard let remoteId = trade.remoteId, UUID(uuidString: remoteId) != nil else { return }
+        guard Trade.ScreenshotSlot.allCases.contains(where: { localScreenshotData(for: $0) == nil }) else { return }
+
+        isLoadingCloudScreenshots = true
+        debugPrint("BEGIN SCREENSHOT GALLERY LOAD")
+
+        Task {
+            defer {
+                Task { @MainActor in
+                    isLoadingCloudScreenshots = false
+                }
+            }
+
+            guard let client = SupabaseClientManager.shared.client else {
+                debugPrint("SCREENSHOT DELETE FAILED:", "Supabase client missing during gallery load")
+                return
+            }
+
+            do {
+                let assets: [ScreenshotAssetRecord] = try await client
+                    .from("screenshot_assets")
+                    .select()
+                    .eq("trade_id", value: remoteId.lowercased())
+                    .execute()
+                    .value
+
+                for asset in assets {
+                    guard let slot = Trade.ScreenshotSlot(rawValue: asset.slot) else { continue }
+                    guard await MainActor.run(body: { localScreenshotData(for: slot) == nil }) else {
+                        debugPrint("LOCAL SCREENSHOT LOADED:", slot.rawValue)
+                        continue
+                    }
+
+                    do {
+                        let data = try await client.storage
+                            .from("trade-screenshots")
+                            .download(path: asset.storagePath)
+
+                        await MainActor.run {
+                            cloudScreenshots[slot] = data
+                            cacheCloudScreenshot(data, for: slot)
+                        }
+                        debugPrint("CLOUD SCREENSHOT LOADED:", asset.storagePath)
+                    } catch {
+                        debugPrint("SCREENSHOT DELETE FAILED:", "Cloud screenshot load failed:", String(describing: error))
+                    }
+                }
+            } catch {
+                debugPrint("SCREENSHOT DELETE FAILED:", "Gallery metadata load failed:", String(describing: error))
+            }
+        }
+    }
+
+    private func deleteCloudScreenshotIfPossible(_ slot: Trade.ScreenshotSlot) async {
+        debugPrint("SCREENSHOT DELETE QUEUED:", slot.rawValue)
+        guard let client = SupabaseClientManager.shared.client else {
+            debugPrint("SCREENSHOT DELETE FAILED:", "Supabase client missing")
+            return
+        }
+
+        guard let remoteId = trade.remoteId?.lowercased() else {
+            debugPrint("SCREENSHOT DELETE FAILED:", "Remote trade ID missing")
+            return
+        }
+
+        var deleteRequestForFailure: ScreenshotDeleteRequest?
+
+        do {
+            let user = try await client.auth.session.user
+            let fallbackPath = "\(user.id.uuidString.lowercased())/\(remoteId)/\(slot.cloudFileName)"
+            deleteRequestForFailure = ScreenshotDeleteRequest(tradeID: remoteId, slot: slot.rawValue, storagePath: fallbackPath)
+            let assets: [ScreenshotAssetRecord] = try await client
+                .from("screenshot_assets")
+                .select()
+                .eq("trade_id", value: remoteId)
+                .eq("slot", value: slot.rawValue)
+                .execute()
+                .value
+
+            let deleteTargets = assets.isEmpty
+                ? [ScreenshotDeleteRequest(tradeID: remoteId, slot: slot.rawValue, storagePath: fallbackPath)]
+                : assets.map { ScreenshotDeleteRequest(tradeID: remoteId, slot: slot.rawValue, storagePath: $0.storagePath) }
+
+            for target in deleteTargets {
+                try await client.storage
+                    .from("trade-screenshots")
+                    .remove(paths: [target.storagePath])
+
+                try await client
+                    .from("screenshot_assets")
+                    .delete()
+                    .eq("trade_id", value: target.tradeID)
+                    .eq("slot", value: target.slot)
+                    .execute()
+            }
+
+            debugPrint("SCREENSHOT DELETE SUCCESS:", slot.rawValue)
+        } catch {
+            if let queued = deleteRequestForFailure {
+                queueScreenshotDelete(queued)
+            }
+            debugPrint("SCREENSHOT DELETE FAILED:", String(describing: error))
+        }
+    }
+
+    private func queueScreenshotDelete(_ request: ScreenshotDeleteRequest) {
+        guard request.storagePath.hasPrefix("/") == false, request.storagePath.first?.isNumber == true || request.storagePath.first?.isLetter == true else {
+            return
+        }
+
+        var pending = ScreenshotDeleteRequest.loadPending()
+        if pending.contains(where: { $0.storagePath == request.storagePath && $0.slot == request.slot }) == false {
+            pending.append(request)
+            ScreenshotDeleteRequest.savePending(pending)
+        }
+        debugPrint("SCREENSHOT DELETE QUEUED:", request.storagePath)
+    }
+
+    private func cacheCloudScreenshot(_ data: Data, for slot: Trade.ScreenshotSlot) {
+        switch slot {
+        case .beforeEntry:
+            guard trade.beforeEntryImageData == nil else { return }
+            trade.beforeEntryImageData = data
+        case .duringTrade:
+            guard trade.duringTradeImageData == nil else { return }
+            trade.duringTradeImageData = data
+        case .afterExit:
+            guard trade.afterExitImageData == nil else { return }
+            trade.afterExitImageData = data
+        }
+
+        do {
+            try modelContext.save()
+            debugPrint("LOCAL SCREENSHOT LOADED:", slot.rawValue)
+        } catch {
+            debugPrint("SCREENSHOT DELETE FAILED:", "Unable to cache cloud screenshot locally:", String(describing: error))
+        }
+    }
+
+    private func aiScoreTile(_ title: String, _ score: Int, _ tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(JPColors.secondaryText)
+
+            Text("\(score)")
+                .font(.title3.weight(.black))
+                .foregroundStyle(tint)
+
+            ProgressView(value: Double(score), total: 100)
+                .tint(tint)
+                .scaleEffect(y: 0.75)
+        }
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(tint.opacity(0.18), lineWidth: 1))
+    }
+
+    private func aiReviewList(_ title: String, _ items: [String], icon: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(JPColors.primaryText)
+            }
+
+            let displayItems = items.isEmpty ? ["No major item detected."] : items
+            ForEach(displayItems.prefix(4), id: \.self) { item in
+                HStack(alignment: .top, spacing: 9) {
+                    Circle()
+                        .fill(tint)
+                        .frame(width: 6, height: 6)
+                        .padding(.top, 6)
+                    Text(item)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(JPColors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func score(named title: String) -> Int {
+        aiCoachViewModel.breakdown.first { $0.title == title }?.score ?? 0
+    }
+
+    private func scoreColor(_ score: Int) -> Color {
+        if score >= 85 { return JPColors.profit }
+        if score >= 70 { return JPColors.warning }
+        if score >= 55 { return Color.orange }
+        return JPColors.loss
     }
 
     private func section<Content: View>(title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
@@ -488,8 +920,7 @@ struct TradeDetailView: View {
             SectionHeader(title: title, subtitle: subtitle)
             content()
         }
-        .opacity(didAppear ? 1 : 0)
-        .offset(y: didAppear ? 0 : 18)
+        .premiumEntrance(active: didAppear, delay: 0.08)
     }
 
     private func infoTile(_ title: String, _ value: String, icon: String, tint: Color) -> some View {
@@ -628,9 +1059,59 @@ private struct TradeDetailForm: Identifiable {
 }
 
 private struct ScreenshotViewerItem: Identifiable {
-    let id = UUID()
+    var id: String { slot.rawValue }
     let slot: Trade.ScreenshotSlot
     let imageData: Data
+}
+
+private struct ScreenshotGallerySelection: Identifiable {
+    var id: String { slot.rawValue }
+    let slot: Trade.ScreenshotSlot
+}
+
+private struct ScreenshotAssetRecord: Codable, Identifiable {
+    let id: UUID
+    let tradeId: UUID
+    let slot: String
+    let storagePath: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case tradeId = "trade_id"
+        case slot
+        case storagePath = "storage_path"
+    }
+}
+
+private struct ScreenshotDeleteRequest: Codable, Equatable {
+    let tradeID: String
+    let slot: String
+    let storagePath: String
+
+    private static let storageKey = "jp.pendingScreenshotDeletes"
+
+    static func loadPending() -> [ScreenshotDeleteRequest] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return [] }
+        return (try? JSONDecoder().decode([ScreenshotDeleteRequest].self, from: data)) ?? []
+    }
+
+    static func savePending(_ requests: [ScreenshotDeleteRequest]) {
+        let data = try? JSONEncoder().encode(requests)
+        UserDefaults.standard.set(data, forKey: storageKey)
+    }
+}
+
+private extension Trade.ScreenshotSlot {
+    var cloudFileName: String {
+        switch self {
+        case .beforeEntry:
+            return "before-entry.jpg"
+        case .duringTrade:
+            return "during-trade.jpg"
+        case .afterExit:
+            return "after-exit.jpg"
+        }
+    }
 }
 
 private struct PickedScreenshot: Transferable {
@@ -736,6 +1217,7 @@ private struct ScreenshotTimelineCard: View {
 
     let slot: Trade.ScreenshotSlot
     let imageData: Data?
+    let isLoading: Bool
     let onImageSelected: (Data) -> Void
     let onDelete: () -> Void
     let onView: (Data) -> Void
@@ -835,6 +1317,25 @@ private struct ScreenshotTimelineCard: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
             .buttonStyle(.plain)
+        } else if isLoading {
+            VStack(spacing: 12) {
+                PremiumInlineLoader(title: "Loading Screenshot", tint: JPColors.accent)
+
+                Text("Loading cloud screenshot")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(JPColors.primaryText)
+
+                Text("Local journal stays available while this loads.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(JPColors.secondaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 190)
+            .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(JPColors.border, lineWidth: 1)
+            )
         } else {
             VStack(spacing: 12) {
                 Image(systemName: "photo.on.rectangle.angled")
@@ -906,8 +1407,103 @@ private struct ScreenshotTimelineCard: View {
     }
 }
 
-private struct ScreenshotFullscreenViewer: View {
+private struct ScreenshotFullscreenGallery: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedSlot: Trade.ScreenshotSlot
+    @State private var scale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    let items: [ScreenshotViewerItem]
+
+    init(items: [ScreenshotViewerItem], initialSlot: Trade.ScreenshotSlot) {
+        self.items = items
+        _selectedSlot = State(initialValue: initialSlot)
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            JPColors.background
+                .ignoresSafeArea()
+
+            TabView(selection: $selectedSlot) {
+                ForEach(items) { item in
+                    ZoomableScreenshotPage(item: item)
+                        .tag(item.slot)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
+            .ignoresSafeArea()
+            .onChange(of: selectedSlot) { _, _ in
+                resetZoomState()
+                JPHaptics.selection()
+            }
+
+            VStack(alignment: .trailing, spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(JPColors.primaryText)
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(ScalingButtonStyle())
+
+                Text(selectedSlot.rawValue)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(JPColors.secondaryText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+            .padding(.top, 18)
+            .padding(.trailing, 18)
+        }
+        .gesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { value in
+                    if scale <= 1.05, abs(value.translation.height) > 120 {
+                        dismiss()
+                    }
+                }
+        )
+    }
+
+    private func resetZoomState() {
+        scale = 1
+        lastScale = 1
+        offset = .zero
+        lastOffset = .zero
+    }
+
+    private var magnificationGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                scale = min(max(lastScale * value, 1), 4)
+            }
+            .onEnded { _ in
+                lastScale = scale
+            }
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                offset = CGSize(
+                    width: lastOffset.width + value.translation.width,
+                    height: lastOffset.height + value.translation.height
+                )
+            }
+            .onEnded { _ in
+                lastOffset = offset
+            }
+    }
+}
+
+private struct ZoomableScreenshotPage: View {
     @State private var scale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
@@ -916,7 +1512,7 @@ private struct ScreenshotFullscreenViewer: View {
     let item: ScreenshotViewerItem
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack {
             JPColors.background
                 .ignoresSafeArea()
 
@@ -941,58 +1537,33 @@ private struct ScreenshotFullscreenViewer: View {
                         }
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    .ignoresSafeArea()
             }
-
-            VStack(alignment: .trailing, spacing: 10) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(JPColors.primaryText)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .buttonStyle(ScalingButtonStyle())
-
-                Text(item.slot.rawValue)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(JPColors.secondaryText)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
-            }
-            .padding(.top, 18)
-            .padding(.trailing, 18)
         }
-        .gesture(
-            DragGesture(minimumDistance: 24)
-                .onEnded { value in
-                    if scale <= 1.05, abs(value.translation.height) > 120 {
-                        dismiss()
-                    }
-                }
-        )
     }
 
     private var magnificationGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
-                scale = min(max(lastScale * value, 1), 4)
+                scale = max(1, min(lastScale * value, 4))
             }
             .onEnded { _ in
                 lastScale = scale
+                if scale <= 1.02 {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        scale = 1
+                        lastScale = 1
+                        offset = .zero
+                        lastOffset = .zero
+                    }
+                }
             }
     }
 
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                offset = CGSize(
-                    width: lastOffset.width + value.translation.width,
-                    height: lastOffset.height + value.translation.height
-                )
+                guard scale > 1 else { return }
+                offset = CGSize(width: lastOffset.width + value.translation.width, height: lastOffset.height + value.translation.height)
             }
             .onEnded { _ in
                 lastOffset = offset

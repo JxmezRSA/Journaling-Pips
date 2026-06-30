@@ -3,20 +3,20 @@ import SwiftData
 
 @Model
 final class AITradeReview {
-    var id: UUID
-    var tradeID: UUID
-    var overallScore: Int
-    var grade: String
-    var summary: String
-    var strengthsRawValue: String
-    var improvementsRawValue: String
-    var executionScore: Int
-    var riskManagementScore: Int
-    var psychologyScore: Int
-    var journalQualityScore: Int
-    var strategyDisciplineScore: Int
-    var createdAt: Date
-    var updatedAt: Date
+    var id: UUID = UUID()
+    var tradeID: UUID = UUID()
+    var overallScore: Int = 0
+    var grade: String = "Pending"
+    var summary: String = ""
+    var strengthsRawValue: String = ""
+    var improvementsRawValue: String = ""
+    var executionScore: Int = 0
+    var riskManagementScore: Int = 0
+    var psychologyScore: Int = 0
+    var journalQualityScore: Int = 0
+    var strategyDisciplineScore: Int = 0
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     var strengths: [String] {
         get {

@@ -19,16 +19,66 @@ final class AITradeCoachViewModel: ObservableObject {
     @Published private(set) var breakdown: [AITradeScoreBreakdown] = []
     @Published private(set) var strengths: [String] = []
     @Published private(set) var improvements: [String] = []
+    @Published private(set) var psychologyNotes = "No psychology notes generated yet."
+    @Published private(set) var nextTradeFocus = "Document the next trade with clear thesis, context, and lessons."
+    @Published private(set) var riskFeedback = "Risk feedback will appear after analysis."
+    @Published private(set) var patternWarnings: [String] = []
+    @Published private(set) var confidenceLevel = "Preview"
+    @Published private(set) var visionAnalysis: VisionAnalysisResponse?
+    @Published private(set) var isAnalyzingVision = false
+    @Published private(set) var isAnalyzing = false
+    @Published private(set) var analysisNotice = "AI backend is not connected yet. Showing local coaching preview."
+    @Published private(set) var hasGeneratedReview = false
+    @Published private(set) var hasSavedReview = false
     @Published var showSavedConfirmation = false
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
     private var savedReview: AITradeReview?
+    private let aiService = AIService()
+    private let visionService = VisionAnalysisService()
 
     func configure(context: ModelContext, trade: Trade) {
         modelContext = context
         loadSavedReview(for: trade)
         calculatePlaceholderReview(for: trade)
+        if let savedReview {
+            apply(savedReview)
+            hasSavedReview = true
+            analysisNotice = "Saved review loaded from this device."
+        }
+        analyzeChartContext(for: trade)
+    }
+
+    func analyzeTrade(_ trade: Trade) {
+        Task {
+            await runAnalysis(for: trade)
+        }
+    }
+
+    func analyzeAndSaveReview(for trade: Trade) {
+        Task {
+            await runAnalysis(for: trade, saveAfterAnalysis: true)
+        }
+    }
+
+    func regenerateReview(for trade: Trade) {
+        JPHaptics.impact(.medium)
+        Task {
+            await runAnalysis(for: trade)
+        }
+    }
+
+    func analyzeChartContext(for trade: Trade) {
+        guard let modelContext else {
+            return
+        }
+
+        Task {
+            isAnalyzingVision = true
+            visionAnalysis = await visionService.analyze(trade: trade, context: modelContext)
+            isAnalyzingVision = false
+        }
     }
 
     func saveReview(for trade: Trade) {
@@ -37,7 +87,7 @@ final class AITradeCoachViewModel: ObservableObject {
             return
         }
 
-        let review = savedReview ?? AITradeReview(
+        let review = AITradeReview(
             tradeID: trade.id,
             overallScore: overallScore,
             grade: grade,
@@ -50,10 +100,7 @@ final class AITradeCoachViewModel: ObservableObject {
             journalQualityScore: score(named: "Journal Quality"),
             strategyDisciplineScore: score(named: "Strategy Discipline")
         )
-
-        if savedReview == nil {
-            modelContext.insert(review)
-        }
+        modelContext.insert(review)
 
         review.overallScore = overallScore
         review.grade = grade
@@ -69,9 +116,18 @@ final class AITradeCoachViewModel: ObservableObject {
 
         do {
             try modelContext.save()
+            debugPrint("AI REVIEW CACHED")
+            debugPrint("AI REVIEW SAVED LOCALLY")
+            debugPrint("AI REVIEW HISTORY UPDATED")
+            queueAIReviewSync(review, context: modelContext)
+            DisciplineTracker(context: modelContext).recordAIReviewSaved(for: trade)
+            IntelligenceEngine(context: modelContext).observe(.aiReviewSaved)
             savedReview = review
+            hasSavedReview = true
             showSavedConfirmation = true
+            JPHaptics.notify(.success)
         } catch {
+            debugPrint("AI REVIEW FAILED:", String(describing: error))
             errorMessage = "Could not save this placeholder review."
         }
     }
@@ -138,6 +194,181 @@ final class AITradeCoachViewModel: ObservableObject {
         savedReview = try? modelContext.fetch(descriptor).first
     }
 
+    private func runAnalysis(for trade: Trade, saveAfterAnalysis: Bool = false) async {
+        debugPrint("AI REVIEW START")
+        debugPrint("BEGIN AI TRADE REVIEW")
+        defer { debugPrint("END AI TRADE REVIEW") }
+
+        guard let modelContext else {
+            debugPrint("AI REVIEW FAILED:", "Model context missing")
+            errorMessage = "Settings are still loading. Try again in a moment."
+            return
+        }
+
+        isAnalyzing = true
+        errorMessage = nil
+
+        do {
+            let response = try await aiService.analyzeTrade(trade, context: modelContext)
+            apply(response)
+            analysisNotice = "AI review generated from the configured backend."
+            hasGeneratedReview = true
+            debugPrint("AI REVIEW COMPLETE")
+            JPHaptics.notify(.success)
+        } catch let error as AIServiceError {
+            applyCachedOrLocalFallback(for: trade, notice: error.localizedDescription)
+            if case .backendNotConfigured = error {
+                errorMessage = nil
+            } else {
+                errorMessage = error.localizedDescription
+            }
+        } catch {
+            applyCachedOrLocalFallback(
+                for: trade,
+                notice: "AI backend is not connected yet. Showing local coaching preview."
+            )
+        }
+
+        isAnalyzing = false
+
+        if saveAfterAnalysis {
+            saveReview(for: trade)
+        }
+    }
+
+    private func queueAIReviewSync(_ review: AITradeReview, context: ModelContext) {
+        let existingItems = (try? context.fetch(FetchDescriptor<SyncQueueItem>())) ?? []
+        let alreadyQueued = existingItems.contains { item in
+            item.entityID == review.id && item.entityType == .aiReview
+        }
+
+        guard alreadyQueued == false else {
+            debugPrint("AI REVIEW SYNC QUEUED:", review.id.uuidString, "existing pending upload")
+            return
+        }
+
+        context.insert(SyncQueueItem(entityID: review.id, entityType: .aiReview, operation: .upload))
+        do {
+            try context.save()
+            debugPrint("AI REVIEW SYNC QUEUED:", review.id.uuidString)
+        } catch {
+            debugPrint("AI REVIEW FAILED:", "Unable to queue AI review sync:", String(describing: error))
+        }
+    }
+
+    private func apply(_ review: AITradeReview) {
+        overallScore = review.overallScore
+        grade = review.grade
+        gradeSummary = review.summary
+        strengths = review.strengths
+        improvements = review.improvements
+        breakdown = [
+            AITradeScoreBreakdown(title: "Execution", score: review.executionScore, explanation: explanation(for: "Execution", score: review.executionScore), icon: "scope"),
+            AITradeScoreBreakdown(title: "Risk Management", score: review.riskManagementScore, explanation: explanation(for: "Risk Management", score: review.riskManagementScore), icon: "shield.lefthalf.filled"),
+            AITradeScoreBreakdown(title: "Psychology", score: review.psychologyScore, explanation: explanation(for: "Psychology", score: review.psychologyScore), icon: "brain.head.profile"),
+            AITradeScoreBreakdown(title: "Journal Quality", score: review.journalQualityScore, explanation: explanation(for: "Journal Quality", score: review.journalQualityScore), icon: "book.pages"),
+            AITradeScoreBreakdown(title: "Strategy Discipline", score: review.strategyDisciplineScore, explanation: explanation(for: "Strategy Discipline", score: review.strategyDisciplineScore), icon: "checklist.checked")
+        ]
+        psychologyNotes = "Saved review restored. Regenerate to refresh psychology notes."
+        nextTradeFocus = improvements.first ?? "Repeat the process with cleaner documentation."
+        riskFeedback = "Saved score: \(review.riskManagementScore)/100."
+        patternWarnings = []
+        confidenceLevel = "Saved"
+    }
+
+    private func apply(_ response: AIReviewResponse) {
+        overallScore = clamp(response.overallScore)
+        grade = response.grade
+        gradeSummary = response.summary
+        strengths = response.strengths
+        improvements = response.improvements
+        psychologyNotes = response.psychologyNotes
+        nextTradeFocus = response.nextTradeFocus
+        riskFeedback = response.riskFeedback
+        patternWarnings = response.patternWarnings
+        confidenceLevel = response.confidenceLevel
+        breakdown = [
+            AITradeScoreBreakdown(title: "Execution", score: clamp(response.executionScore), explanation: explanation(for: "Execution", score: response.executionScore), icon: "scope"),
+            AITradeScoreBreakdown(title: "Risk Management", score: clamp(response.riskScore), explanation: response.riskFeedback, icon: "shield.lefthalf.filled"),
+            AITradeScoreBreakdown(title: "Psychology", score: clamp(response.psychologyScore), explanation: response.psychologyNotes, icon: "brain.head.profile"),
+            AITradeScoreBreakdown(title: "Journal Quality", score: clamp(response.journalQualityScore), explanation: "Journal confidence: \(response.confidenceLevel).", icon: "book.pages"),
+            AITradeScoreBreakdown(title: "Strategy Discipline", score: clamp(response.strategyDisciplineScore), explanation: response.nextTradeFocus, icon: "checklist.checked")
+        ]
+    }
+
+    func scoreValue(named title: String) -> Int {
+        score(named: title)
+    }
+
+    func patienceScore(for trade: Trade) -> Int {
+        var score = 76
+
+        if trade.mistakeTags.contains(.enteredEarly) || trade.mistakeTags.contains(.enteredLate) {
+            score -= 18
+        }
+
+        if trade.mistakeTags.contains(.closedEarly) || trade.mistakeTags.contains(.heldTooLong) {
+            score -= 12
+        }
+
+        if trade.mistakeTags.contains(.goodDiscipline) {
+            score += 12
+        }
+
+        if trade.followedPlan {
+            score += 8
+        }
+
+        return clamp(score)
+    }
+
+    func disciplineScore(for trade: Trade) -> Int {
+        let planScore = trade.followedPlan ? 88 : 54
+        let mistakePenalty = min(trade.mistakeTags.count * 6, 30)
+        let journalBonus = min(journalLength(for: trade) / 80, 12)
+        let screenshotBonus = screenshotCount(for: trade) * 4
+        return clamp(planScore - mistakePenalty + journalBonus + screenshotBonus)
+    }
+
+    func nextTradeChecklist(for trade: Trade) -> [String] {
+        var items = [
+            "Confirm bias and session plan before entry.",
+            "Respect the planned stop and risk percentage.",
+            "Capture before, during, and after screenshots."
+        ]
+
+        items.append(contentsOf: improvements.prefix(3))
+
+        if trade.mistakeTags.contains(.fomo) {
+            items.append("Wait for confirmation before committing capital.")
+        }
+
+        if trade.mistakeTags.contains(.overtrading) || trade.mistakeTags.contains(.revengeTrade) {
+            items.append("Stop trading after the max-trade or emotional limit is reached.")
+        }
+
+        return Array(Set(items)).prefix(6).map { $0 }
+    }
+
+    private func applyCachedOrLocalFallback(for trade: Trade, notice: String) {
+        if let savedReview {
+            apply(savedReview)
+            analysisNotice = "Backend unavailable. Showing cached review from this device."
+            hasGeneratedReview = true
+            hasSavedReview = true
+            debugPrint("AI REVIEW CACHED")
+            debugPrint("AI REVIEW COMPLETE")
+            return
+        }
+
+        let fallback = localFallbackResponse(for: trade)
+        apply(fallback)
+        debugPrint("AI REVIEW LOCAL PREVIEW")
+        debugPrint("AI REVIEW COMPLETE")
+        analysisNotice = notice
+        hasGeneratedReview = true
+    }
+
     private func calculatePlaceholderReview(for trade: Trade) {
         let execution = executionScore(for: trade)
         let risk = riskManagementScore(for: trade)
@@ -183,6 +414,48 @@ final class AITradeCoachViewModel: ObservableObject {
         gradeSummary = gradeSummary(for: overallScore)
         strengths = strengths(for: trade)
         improvements = improvements(for: trade)
+        psychologyNotes = "Emotion: \(trade.emotion.isEmpty ? "Neutral" : trade.emotion). Confidence: \(Int(trade.confidence.rounded()))/10."
+        nextTradeFocus = improvements.first ?? "Keep executing only A+ setups."
+        riskFeedback = trade.riskPercent > 2 ? "Risk was above the preferred discipline range." : "Risk stayed within a reasonable local preview range."
+        patternWarnings = trade.mistakeTags.filter { [.fomo, .revengeTrade, .overtrading, .riskTooHigh].contains($0) }.map(\.rawValue)
+        confidenceLevel = "Local Preview"
+    }
+
+    private func localFallbackResponse(for trade: Trade) -> AIReviewResponse {
+        calculatePlaceholderReview(for: trade)
+        return AIReviewResponse(
+            overallScore: overallScore,
+            grade: grade,
+            executionScore: score(named: "Execution"),
+            riskScore: score(named: "Risk Management"),
+            psychologyScore: score(named: "Psychology"),
+            journalQualityScore: score(named: "Journal Quality"),
+            strategyDisciplineScore: score(named: "Strategy Discipline"),
+            summary: gradeSummary,
+            strengths: strengths,
+            improvements: improvements,
+            psychologyNotes: psychologyNotes,
+            nextTradeFocus: nextTradeFocus,
+            riskFeedback: riskFeedback,
+            patternWarnings: patternWarnings.isEmpty ? ["No major local pattern warning detected."] : patternWarnings,
+            confidenceLevel: "Local Preview"
+        )
+    }
+
+    private func explanation(for title: String, score: Int) -> String {
+        let clampedScore = clamp(score)
+        switch title {
+        case "Execution":
+            return clampedScore >= 85 ? "Execution quality is strong." : "Tighten timing and confirmation before entry."
+        case "Risk Management":
+            return clampedScore >= 85 ? "Risk stayed controlled." : "Review sizing, stop placement, and target quality."
+        case "Psychology":
+            return clampedScore >= 85 ? "Psychology supported the plan." : "Watch emotional triggers and rule breaks."
+        case "Journal Quality":
+            return clampedScore >= 85 ? "Journal detail supports useful review." : "Add richer thesis, context, screenshots, and lessons."
+        default:
+            return clampedScore >= 85 ? "Strategy discipline looks aligned." : "Clarify rules and avoid low-quality setups."
+        }
     }
 
     private func executionScore(for trade: Trade) -> Int {

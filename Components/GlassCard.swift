@@ -2,31 +2,53 @@ import SwiftUI
 
 struct GlassCard<Content: View>: View {
     private let content: Content
+    private let padding: CGFloat
+    private let cornerRadius: CGFloat
 
-    init(@ViewBuilder content: () -> Content) {
+    init(
+        padding: CGFloat = JPDesign.cardPadding,
+        cornerRadius: CGFloat = JPDesign.cardRadius,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.padding = padding
+        self.cornerRadius = cornerRadius
         self.content = content()
     }
 
     var body: some View {
         content
-            .padding(18)
+            .padding(padding)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                JPColors.elevatedSurface.opacity(0.96),
-                                JPColors.surface.opacity(0.92)
+                                JPColors.elevatedSurface.opacity(0.98),
+                                JPColors.surface.opacity(0.90),
+                                JPColors.background.opacity(0.62)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(JPColors.border, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.18),
+                                        JPColors.border,
+                                        JPColors.accent.opacity(0.06)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     )
-                    .shadow(color: Color.black.opacity(0.28), radius: 22, x: 0, y: 14)
+                    .shadow(color: JPDesign.accentShadow, radius: 18, x: 0, y: 6)
+                    .shadow(color: JPDesign.cardShadow, radius: 26, x: 0, y: 18)
             )
+            .accessibilityElement(children: .contain)
     }
 }

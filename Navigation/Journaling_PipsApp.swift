@@ -3,10 +3,12 @@ import SwiftData
 
 @main
 struct Journaling_PipsApp: App {
+    private let modelContainer = SwiftDataStoreManager.makeContainer()
+
     var body: some Scene {
         WindowGroup {
             AppRootView()
         }
-        .modelContainer(for: [Trade.self, MorningPlan.self, UserProfile.self, AITradeReview.self])
+        .modelContainer(modelContainer)
     }
 }

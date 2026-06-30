@@ -37,9 +37,12 @@ final class UserProfile {
     }
 
     enum CoachingStyle: String, CaseIterable, Identifiable {
-        case strict = "Strict"
-        case balanced = "Balanced"
-        case encouraging = "Encouraging"
+        case professionalMentor = "Professional Mentor"
+        case ictMentor = "ICT Mentor"
+        case smcMentor = "SMC Mentor"
+        case riskManager = "Risk Manager"
+        case performanceCoach = "Performance Coach"
+        case psychologist = "Psychologist"
 
         var id: String { rawValue }
     }
@@ -53,21 +56,24 @@ final class UserProfile {
         var id: String { rawValue }
     }
 
-    var id: UUID
-    var name: String
-    private var tradingExperienceRawValue: String
-    private var tradingStyleRawValue: String
-    var preferredMarkets: String
-    var accountSize: Double
-    private var accountTypeRawValue: String
-    private var baseCurrencyRawValue: String
-    private var coachingStyleRawValue: String
-    private var themePreferenceRawValue: String
-    var morningPreparationReminder: Bool
-    var tradeReviewReminder: Bool
-    var weeklyPerformanceReview: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var id: UUID = UUID()
+    var name: String = "James"
+    private var tradingExperienceRawValue: String = TradingExperience.beginner.rawValue
+    private var tradingStyleRawValue: String = TradingStyle.dayTrader.rawValue
+    var preferredMarkets: String = ""
+    var accountSize: Double = 0
+    private var accountTypeRawValue: String = AccountType.personal.rawValue
+    private var baseCurrencyRawValue: String = BaseCurrency.usd.rawValue
+    private var coachingStyleRawValue: String = CoachingStyle.professionalMentor.rawValue
+    private var themePreferenceRawValue: String = ThemePreference.midnight.rawValue
+    var morningPreparationReminder: Bool = false
+    var tradeReviewReminder: Bool = false
+    var weeklyPerformanceReview: Bool = false
+    var smartInsightsEnabled: Bool = true
+    var dailyCoachingEnabled: Bool = true
+    var weeklySummaryEnabled: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     var tradingExperience: TradingExperience {
         get { TradingExperience(rawValue: tradingExperienceRawValue) ?? .beginner }
@@ -90,7 +96,7 @@ final class UserProfile {
     }
 
     var coachingStyle: CoachingStyle {
-        get { CoachingStyle(rawValue: coachingStyleRawValue) ?? .balanced }
+        get { CoachingStyle(rawValue: coachingStyleRawValue) ?? .professionalMentor }
         set { coachingStyleRawValue = newValue.rawValue }
     }
 
@@ -108,11 +114,14 @@ final class UserProfile {
         accountSize: Double = 0,
         accountType: AccountType = .personal,
         baseCurrency: BaseCurrency = .usd,
-        coachingStyle: CoachingStyle = .balanced,
+        coachingStyle: CoachingStyle = .professionalMentor,
         themePreference: ThemePreference = .midnight,
         morningPreparationReminder: Bool = false,
         tradeReviewReminder: Bool = false,
         weeklyPerformanceReview: Bool = false,
+        smartInsightsEnabled: Bool = true,
+        dailyCoachingEnabled: Bool = true,
+        weeklySummaryEnabled: Bool = true,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -129,6 +138,9 @@ final class UserProfile {
         self.morningPreparationReminder = morningPreparationReminder
         self.tradeReviewReminder = tradeReviewReminder
         self.weeklyPerformanceReview = weeklyPerformanceReview
+        self.smartInsightsEnabled = smartInsightsEnabled
+        self.dailyCoachingEnabled = dailyCoachingEnabled
+        self.weeklySummaryEnabled = weeklySummaryEnabled
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

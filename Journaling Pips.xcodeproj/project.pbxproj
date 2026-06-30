@@ -23,6 +23,32 @@
 		JP000001000000000000000D /* ReportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001D /* ReportViewModel.swift */; };
 		JP000001000000000000000E /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001E /* ReportGenerator.swift */; };
 		JP000001000000000000000F /* PDFExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000001F /* PDFExportService.swift */; };
+		JP0000010000000000000020 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000030 /* AuthService.swift */; };
+		JP0000010000000000000021 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000031 /* KeychainService.swift */; };
+		JP0000010000000000000022 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000032 /* SubscriptionManager.swift */; };
+		JP0000010000000000000023 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000033 /* SupabaseConfig.swift */; };
+		JP0000010000000000000024 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000034 /* SyncService.swift */; };
+		JP0000010000000000000025 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000035 /* AuthViewModel.swift */; };
+		JP0000010000000000000026 /* SyncViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000036 /* SyncViewModel.swift */; };
+		JP0000010000000000000027 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = JP0000010000000000000040 /* Supabase */; };
+		JP0000010000000000000028 /* TradeReplayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000037 /* TradeReplayViewModel.swift */; };
+		JP0000010000000000000050 /* DisciplineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000060 /* DisciplineViewModel.swift */; };
+		JP0000010000000000000051 /* DisciplineTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000061 /* DisciplineTracker.swift */; };
+		JP0000010000000000000052 /* RingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000062 /* RingProgressView.swift */; };
+		JP0000010000000000000053 /* AchievementBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000063 /* AchievementBadgeView.swift */; };
+		JP0000010000000000000054 /* PremiumPolish.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000064 /* PremiumPolish.swift */; };
+		JP0000010000000000000055 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000065 /* AIService.swift */; };
+		JP0000010000000000000056 /* AIReviewRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000066 /* AIReviewRequest.swift */; };
+		JP0000010000000000000057 /* InsightRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000067 /* InsightRepository.swift */; };
+		JP0000010000000000000058 /* IntelligenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000068 /* IntelligenceEngine.swift */; };
+		JP0000010000000000000059 /* InsightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000069 /* InsightViewModel.swift */; };
+		JP000001000000000000005A /* InsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006A /* InsightCard.swift */; };
+		JP000001000000000000005B /* ProductionHealthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006B /* ProductionHealthService.swift */; };
+		JP000001000000000000005C /* VisionAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006C /* VisionAnalysisService.swift */; };
+		JP000001000000000000005D /* AIBackendConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006D /* AIBackendConfiguration.swift */; };
+		JP000001000000000000005E /* AIBackendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006E /* AIBackendService.swift */; };
+		JP000001000000000000005F /* VisionPromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP000001000000000000006F /* VisionPromptBuilder.swift */; };
+		JP0000010000000000000070 /* SwiftDataStoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JP0000010000000000000071 /* SwiftDataStoreManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +69,31 @@
 		JP000001000000000000001D /* ReportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportViewModel.swift; sourceTree = "<group>"; };
 		JP000001000000000000001E /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
 		JP000001000000000000001F /* PDFExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExportService.swift; sourceTree = "<group>"; };
+		JP0000010000000000000030 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		JP0000010000000000000031 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		JP0000010000000000000032 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		JP0000010000000000000033 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		JP0000010000000000000034 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		JP0000010000000000000035 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000036 /* SyncViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000037 /* TradeReplayViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeReplayViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000060 /* DisciplineViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisciplineViewModel.swift; sourceTree = "<group>"; };
+		JP0000010000000000000061 /* DisciplineTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisciplineTracker.swift; sourceTree = "<group>"; };
+		JP0000010000000000000062 /* RingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingProgressView.swift; sourceTree = "<group>"; };
+		JP0000010000000000000063 /* AchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementBadgeView.swift; sourceTree = "<group>"; };
+		JP0000010000000000000064 /* PremiumPolish.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumPolish.swift; sourceTree = "<group>"; };
+		JP0000010000000000000065 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
+		JP0000010000000000000066 /* AIReviewRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIReviewRequest.swift; sourceTree = "<group>"; };
+		JP0000010000000000000067 /* InsightRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightRepository.swift; sourceTree = "<group>"; };
+		JP0000010000000000000068 /* IntelligenceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngine.swift; sourceTree = "<group>"; };
+		JP0000010000000000000069 /* InsightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightViewModel.swift; sourceTree = "<group>"; };
+		JP000001000000000000006A /* InsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightCard.swift; sourceTree = "<group>"; };
+		JP000001000000000000006B /* ProductionHealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductionHealthService.swift; sourceTree = "<group>"; };
+		JP000001000000000000006C /* VisionAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionAnalysisService.swift; sourceTree = "<group>"; };
+		JP000001000000000000006D /* AIBackendConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBackendConfiguration.swift; sourceTree = "<group>"; };
+		JP000001000000000000006E /* AIBackendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBackendService.swift; sourceTree = "<group>"; };
+		JP000001000000000000006F /* VisionPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionPromptBuilder.swift; sourceTree = "<group>"; };
+		JP0000010000000000000071 /* SwiftDataStoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataStoreManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -143,6 +194,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				JP0000010000000000000027 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,11 +249,16 @@
 			children = (
 				JP000001000000000000001C /* AITradeCoachViewModel.swift */,
 				JP0000010000000000000018 /* AnalyticsViewModel.swift */,
+				JP0000010000000000000035 /* AuthViewModel.swift */,
 				JP0000010000000000000014 /* DashboardViewModel.swift */,
+				JP0000010000000000000060 /* DisciplineViewModel.swift */,
+				JP0000010000000000000069 /* InsightViewModel.swift */,
 				JP000001000000000000001A /* PlanViewModel.swift */,
 				JP000001000000000000001D /* ReportViewModel.swift */,
 				JP000001000000000000001B /* SettingsViewModel.swift */,
+				JP0000010000000000000036 /* SyncViewModel.swift */,
 				JP0000010000000000000017 /* TradeDetailViewModel.swift */,
+				JP0000010000000000000037 /* TradeReplayViewModel.swift */,
 				JP0000010000000000000015 /* TradeViewModel.swift */,
 			);
 			path = ViewModels;
@@ -210,10 +267,26 @@
 		483E42142FED9CA4000AA049 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				JP0000010000000000000066 /* AIReviewRequest.swift */,
+				JP000001000000000000006D /* AIBackendConfiguration.swift */,
+				JP000001000000000000006E /* AIBackendService.swift */,
+				JP0000010000000000000065 /* AIService.swift */,
+				JP0000010000000000000030 /* AuthService.swift */,
+				JP0000010000000000000061 /* DisciplineTracker.swift */,
+				JP0000010000000000000068 /* IntelligenceEngine.swift */,
+				JP0000010000000000000067 /* InsightRepository.swift */,
+				JP0000010000000000000031 /* KeychainService.swift */,
 				JP000001000000000000001F /* PDFExportService.swift */,
 				JP0000010000000000000019 /* PlanRepository.swift */,
+				JP000001000000000000006B /* ProductionHealthService.swift */,
 				JP000001000000000000001E /* ReportGenerator.swift */,
+				JP0000010000000000000032 /* SubscriptionManager.swift */,
+				JP0000010000000000000033 /* SupabaseConfig.swift */,
+				JP0000010000000000000071 /* SwiftDataStoreManager.swift */,
+				JP0000010000000000000034 /* SyncService.swift */,
 				JP0000010000000000000016 /* TradeRepository.swift */,
+				JP000001000000000000006C /* VisionAnalysisService.swift */,
+				JP000001000000000000006F /* VisionPromptBuilder.swift */,
 				483E42A12FEDA590000AA049 /* Export */,
 				483E42A02FEDA583000AA049 /* AI */,
 				483E429F2FEDA575000AA049 /* Analytics */,
@@ -226,8 +299,12 @@
 		483E42152FED9CB0000AA049 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				JP0000010000000000000063 /* AchievementBadgeView.swift */,
 				JP0000010000000000000011 /* GlassCard.swift */,
+				JP000001000000000000006A /* InsightCard.swift */,
 				JP0000010000000000000012 /* MetricCard.swift */,
+				JP0000010000000000000064 /* PremiumPolish.swift */,
+				JP0000010000000000000062 /* RingProgressView.swift */,
 				JP0000010000000000000013 /* SectionHeader.swift */,
 			);
 			path = Components;
@@ -286,6 +363,7 @@
 			);
 			name = "Journaling Pips";
 			packageProductDependencies = (
+				JP0000010000000000000040 /* Supabase */,
 			);
 			productName = "Journaling Pips";
 			productReference = 483E42002FED9962000AA049 /* Journaling Pips.app */;
@@ -315,6 +393,9 @@
 			);
 			mainGroup = 483E41F72FED9962000AA049;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				JP0000010000000000000041 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 483E42012FED9962000AA049 /* Products */;
 			projectDirPath = "";
@@ -343,18 +424,43 @@
 			files = (
 				JP000001000000000000000C /* AITradeCoachViewModel.swift in Sources */,
 				JP0000010000000000000008 /* AnalyticsViewModel.swift in Sources */,
+				JP0000010000000000000025 /* AuthViewModel.swift in Sources */,
 				JP0000010000000000000004 /* DashboardViewModel.swift in Sources */,
+				JP0000010000000000000050 /* DisciplineViewModel.swift in Sources */,
+				JP0000010000000000000059 /* InsightViewModel.swift in Sources */,
 				JP000001000000000000000A /* PlanViewModel.swift in Sources */,
 				JP000001000000000000000D /* ReportViewModel.swift in Sources */,
 				JP000001000000000000000B /* SettingsViewModel.swift in Sources */,
+				JP0000010000000000000026 /* SyncViewModel.swift in Sources */,
 				JP0000010000000000000007 /* TradeDetailViewModel.swift in Sources */,
 				JP0000010000000000000005 /* TradeViewModel.swift in Sources */,
+				JP0000010000000000000020 /* AuthService.swift in Sources */,
+				JP0000010000000000000056 /* AIReviewRequest.swift in Sources */,
+				JP000001000000000000005D /* AIBackendConfiguration.swift in Sources */,
+				JP000001000000000000005E /* AIBackendService.swift in Sources */,
+				JP0000010000000000000055 /* AIService.swift in Sources */,
+				JP0000010000000000000051 /* DisciplineTracker.swift in Sources */,
+				JP0000010000000000000058 /* IntelligenceEngine.swift in Sources */,
+				JP0000010000000000000057 /* InsightRepository.swift in Sources */,
+				JP0000010000000000000021 /* KeychainService.swift in Sources */,
 				JP000001000000000000000F /* PDFExportService.swift in Sources */,
 				JP0000010000000000000009 /* PlanRepository.swift in Sources */,
+				JP000001000000000000005B /* ProductionHealthService.swift in Sources */,
 				JP000001000000000000000E /* ReportGenerator.swift in Sources */,
+				JP0000010000000000000022 /* SubscriptionManager.swift in Sources */,
+				JP0000010000000000000023 /* SupabaseConfig.swift in Sources */,
+				JP0000010000000000000070 /* SwiftDataStoreManager.swift in Sources */,
+				JP0000010000000000000024 /* SyncService.swift in Sources */,
 				JP0000010000000000000006 /* TradeRepository.swift in Sources */,
+				JP000001000000000000005C /* VisionAnalysisService.swift in Sources */,
+				JP000001000000000000005F /* VisionPromptBuilder.swift in Sources */,
+				JP0000010000000000000028 /* TradeReplayViewModel.swift in Sources */,
+				JP0000010000000000000053 /* AchievementBadgeView.swift in Sources */,
 				JP0000010000000000000001 /* GlassCard.swift in Sources */,
+				JP000001000000000000005A /* InsightCard.swift in Sources */,
 				JP0000010000000000000002 /* MetricCard.swift in Sources */,
+				JP0000010000000000000054 /* PremiumPolish.swift in Sources */,
+				JP0000010000000000000052 /* RingProgressView.swift in Sources */,
 				JP0000010000000000000003 /* SectionHeader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -489,10 +595,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 645A25B8U5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -522,10 +629,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 645A25B8U5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -571,6 +679,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		JP0000010000000000000041 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		JP0000010000000000000040 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = JP0000010000000000000041 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 483E41F82FED9962000AA049 /* Project object */;
 }

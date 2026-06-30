@@ -5,6 +5,7 @@ import UIKit
 struct AITradeCoachView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = AITradeCoachViewModel()
+    @StateObject private var insightViewModel = InsightViewModel()
     @State private var didAppear = false
     @State private var activeScreenshot: AICoachScreenshotItem?
 
@@ -17,13 +18,21 @@ struct AITradeCoachView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     header
+                    intelligenceDashboardEntry
+                    aiHistoryEntry
+                    analysisControls
+                    professionalReviewSection
                     scoreBreakdownSection
                     tradeSummarySection
+                    chartAnalysisSection
                     coachEmptyState
                     strengthsSection
                     improvementsSection
                     coachMessageSection
+                    generatedInsightsSection
+                    warningsSection
                     screenshotReviewSection
+                    nextTradeChecklistSection
                     overallGradeSection
                     saveReportButton
                 }
@@ -42,20 +51,91 @@ struct AITradeCoachView: View {
         .alert("Review Saved", isPresented: $viewModel.showSavedConfirmation) {
             Button("Done", role: .cancel) { }
         } message: {
-            Text("Your placeholder AI Trade Coach report was saved locally.")
-        }
-        .alert("Unable to Save", isPresented: errorBinding) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.errorMessage ?? "Something went wrong.")
+            Text("Your AI Trade Coach review was saved locally.")
         }
         .onAppear {
             viewModel.configure(context: modelContext, trade: trade)
+            insightViewModel.configure(context: modelContext)
 
             withAnimation(.spring(response: 0.52, dampingFraction: 0.84)) {
                 didAppear = true
             }
         }
+    }
+
+    private var intelligenceDashboardEntry: some View {
+        NavigationLink {
+            AIIntelligenceDashboardView()
+        } label: {
+            GlassCard {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundStyle(JPColors.warning)
+                        .frame(width: 54, height: 54)
+                        .background(
+                            LinearGradient(colors: [JPColors.accent.opacity(0.18), JPColors.purple.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            in: RoundedRectangle(cornerRadius: 19, style: .continuous)
+                        )
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Open Personal Intelligence")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text("Analyze your full trading history, behavior, risk, discipline, and recurring patterns.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(JPColors.accent)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .premiumEntrance(active: didAppear, delay: 0.02)
+        .accessibilityLabel("Open Personal Intelligence dashboard")
+    }
+
+    private var aiHistoryEntry: some View {
+        NavigationLink {
+            AIReviewHistoryView()
+        } label: {
+            GlassCard {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 23, weight: .black))
+                        .foregroundStyle(JPColors.blue)
+                        .frame(width: 54, height: 54)
+                        .background(JPColors.blue.opacity(0.16), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("AI Review History")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text("Search saved reviews, track score progress, and compare coaching patterns over time.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(JPColors.blue)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .premiumEntrance(active: didAppear, delay: 0.04)
+        .accessibilityLabel("Open AI review history")
     }
 
     private var header: some View {
@@ -109,7 +189,7 @@ struct AITradeCoachView: View {
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundStyle(scoreColor(viewModel.overallScore))
 
-                        Text("Placeholder score from journal data, risk behavior, execution, and screenshots.")
+                        Text(viewModel.confidenceLevel == "Local Preview" ? "Local coaching preview from journal data, risk behavior, execution, and screenshots." : "Generated from saved trade context and coaching preferences.")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(JPColors.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -124,11 +204,149 @@ struct AITradeCoachView: View {
         .offset(y: didAppear ? 0 : 18)
     }
 
+    private var analysisControls: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: viewModel.hasSavedReview ? "checkmark.seal.fill" : "network")
+                        .font(.system(size: 21, weight: .bold))
+                        .foregroundStyle(viewModel.hasSavedReview ? JPColors.profit : JPColors.accent)
+                        .frame(width: 48, height: 48)
+                        .background((viewModel.hasSavedReview ? JPColors.profit : JPColors.accent).opacity(0.14), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(viewModel.hasGeneratedReview || viewModel.hasSavedReview ? "Review Ready" : "AI-Ready Review")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text(viewModel.analysisNotice)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer()
+                }
+
+                if viewModel.isAnalyzing {
+                    PremiumLoadingBlock(
+                        title: "Analyzing trade context",
+                        subtitle: "Reviewing execution, risk, psychology, journal quality, and local insights.",
+                        symbolName: "sparkles"
+                    )
+                }
+
+                if let error = viewModel.errorMessage {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(error)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(JPColors.warning)
+
+                        Button {
+                            viewModel.analyzeTrade(trade)
+                        } label: {
+                            Label("Retry", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(JPColors.warning)
+                        }
+                        .buttonStyle(ScalingButtonStyle())
+                    }
+                    .padding(14)
+                    .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        viewModel.analyzeTrade(trade)
+                    } label: {
+                        Label(viewModel.hasGeneratedReview ? "Analyze Again" : "Analyze Trade", systemImage: "sparkles")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.background)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .disabled(viewModel.isAnalyzing)
+                    .buttonStyle(ScalingButtonStyle())
+
+                    Button {
+                        viewModel.regenerateReview(for: trade)
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.warning)
+                            .frame(width: 52, height: 52)
+                            .background(JPColors.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .disabled(viewModel.isAnalyzing)
+                    .buttonStyle(ScalingButtonStyle())
+                }
+            }
+        }
+        .opacity(didAppear ? 1 : 0)
+        .offset(y: didAppear ? 0 : 18)
+    }
+
     private var scoreBreakdownSection: some View {
-        section(title: "Score Breakdown", subtitle: "Placeholder scoring ready for future AI reports") {
+        section(title: "Score Breakdown", subtitle: "Structured scores ready for backend AI reports") {
             VStack(spacing: 12) {
                 ForEach(viewModel.breakdown) { item in
                     AICoachBreakdownCard(item: item, tint: scoreColor(item.score), animate: didAppear)
+                }
+            }
+        }
+    }
+
+    private var professionalReviewSection: some View {
+        section(title: "Professional Review", subtitle: "Production coaching categories for this trade") {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 14) {
+                        AICoachScoreRing(
+                            score: viewModel.overallScore,
+                            tint: scoreColor(viewModel.overallScore),
+                            animate: didAppear
+                        )
+                        .frame(width: 94, height: 94)
+                        .scaleEffect(0.8)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Text(viewModel.grade)
+                                    .font(.title.bold())
+                                    .foregroundStyle(scoreColor(viewModel.overallScore))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(scoreColor(viewModel.overallScore).opacity(0.14), in: Capsule())
+
+                                Text(viewModel.confidenceLevel)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(JPColors.warning)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(JPColors.warning.opacity(0.13), in: Capsule())
+                            }
+
+                            Text("Overall Score")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .textCase(.uppercase)
+
+                            Text(viewModel.gradeSummary)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(JPColors.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    LazyVGrid(columns: twoColumns, spacing: 12) {
+                        professionalMetric("Execution Quality", viewModel.scoreValue(named: "Execution"), icon: "scope", tint: JPColors.accent)
+                        professionalMetric("Risk Management", viewModel.scoreValue(named: "Risk Management"), icon: "shield.lefthalf.filled", tint: JPColors.profit)
+                        professionalMetric("Psychology", viewModel.scoreValue(named: "Psychology"), icon: "brain.head.profile", tint: JPColors.purple)
+                        professionalMetric("Patience", viewModel.patienceScore(for: trade), icon: "hourglass", tint: JPColors.warning)
+                        professionalMetric("Discipline", viewModel.disciplineScore(for: trade), icon: "checkmark.seal.fill", tint: JPColors.blue)
+                        professionalMetric("Journal Quality", viewModel.scoreValue(named: "Journal Quality"), icon: "book.pages.fill", tint: JPColors.secondaryText)
+                    }
                 }
             }
         }
@@ -147,6 +365,59 @@ struct AITradeCoachView: View {
                     summaryTile("Duration", viewModel.durationText(for: trade), icon: "timer", tint: JPColors.secondaryText)
                     summaryTile("Journal Length", "\(viewModel.journalLength(for: trade)) chars", icon: "text.alignleft", tint: JPColors.accent)
                     summaryTile("Screenshots", "\(viewModel.screenshotCount(for: trade)) uploaded", icon: "photo.on.rectangle", tint: JPColors.warning)
+                }
+            }
+        }
+    }
+
+    private var chartAnalysisSection: some View {
+        section(title: "Chart Analysis", subtitle: "Backend-ready vision review from uploaded screenshots") {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(JPColors.accent)
+                            .frame(width: 52, height: 52)
+                            .background(JPColors.accentSoft, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Trade Review + Chart Review")
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(JPColors.primaryText)
+
+                            Text(chartAnalysis?.finalVerdict ?? "Preparing local chart context for future AI Vision.")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(JPColors.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer()
+
+                        if viewModel.isAnalyzingVision {
+                            ProgressView()
+                                .tint(JPColors.accent)
+                        } else {
+                            Text("\(chartAnalysis?.confidence ?? 0)%")
+                                .font(.title3.weight(.black))
+                                .foregroundStyle(chartConfidenceColor)
+                        }
+                    }
+
+                    LazyVGrid(columns: twoColumns, spacing: 12) {
+                        chartMetric("Market Structure", chartAnalysis?.marketStructure, icon: "point.topleft.down.curvedto.point.bottomright.up", tint: JPColors.blue)
+                        chartMetric("Entry Quality", chartAnalysis?.entryQuality, icon: "scope", tint: JPColors.accent)
+                        chartMetric("Risk Placement", chartAnalysis?.riskPlacement, icon: "shield.lefthalf.filled", tint: JPColors.profit)
+                        chartMetric("Trade Timing", chartAnalysis?.tradeTiming, icon: "timer", tint: JPColors.warning)
+                        chartMetric("Trend Alignment", chartAnalysis?.trendAlignment, icon: "arrow.up.right", tint: JPColors.purple)
+                        chartMetric("Liquidity", chartAnalysis?.liquidity, icon: "drop.fill", tint: JPColors.blue)
+                        chartMetric("FVG", chartAnalysis?.fairValueGap, icon: "rectangle.split.3x1", tint: JPColors.warning)
+                        chartMetric("Order Blocks", chartAnalysis?.orderBlocks, icon: "square.stack.3d.up.fill", tint: JPColors.accent)
+                        chartMetric("BOS", chartAnalysis?.breakOfStructure, icon: "arrow.triangle.branch", tint: JPColors.profit)
+                        chartMetric("CHOCH", chartAnalysis?.changeOfCharacter, icon: "arrow.left.arrow.right", tint: JPColors.secondaryText)
+                        chartMetric("Momentum", chartAnalysis?.momentum, icon: "bolt.fill", tint: JPColors.warning)
+                        chartMetric("Confidence", "\(chartAnalysis?.confidence ?? 0)/100", icon: "checkmark.seal.fill", tint: chartConfidenceColor)
+                    }
                 }
             }
         }
@@ -205,7 +476,7 @@ struct AITradeCoachView: View {
     }
 
     private var improvementsSection: some View {
-        section(title: "Improve Next Time", subtitle: "Coaching prompts from placeholder logic") {
+        section(title: "Improve Next Time", subtitle: "Coaching prompts for the next trade") {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(viewModel.improvements, id: \.self) { improvement in
                     bulletRow(improvement, icon: "arrow.up.forward.circle.fill", tint: orange)
@@ -229,7 +500,7 @@ struct AITradeCoachView: View {
     }
 
     private var coachMessageSection: some View {
-        section(title: "Coach Message", subtitle: "Future AI response preview") {
+        section(title: "Final Verdict", subtitle: "Combined trade review and chart review") {
             GlassCard {
                 HStack(alignment: .top, spacing: 14) {
                     Text("✨")
@@ -238,11 +509,11 @@ struct AITradeCoachView: View {
                         .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Great discipline on this trade.")
+                        Text(viewModel.gradeSummary)
                             .font(.headline.weight(.bold))
                             .foregroundStyle(JPColors.primaryText)
 
-                        Text("Your execution was strong, but your exit could have captured more of the move.\n\nFocus on allowing high-quality trades enough room before closing them.\n\nThis is placeholder text for now.")
+                        Text("\(viewModel.psychologyNotes)\n\nChart: \(chartAnalysis?.finalVerdict ?? "Vision backend is not connected yet. Showing offline chart preview.")\n\nRisk: \(viewModel.riskFeedback)\n\nNext focus: \(viewModel.nextTradeFocus)")
                             .font(.subheadline)
                             .foregroundStyle(JPColors.secondaryText)
                             .lineSpacing(4)
@@ -287,6 +558,61 @@ struct AITradeCoachView: View {
         }
     }
 
+    private var nextTradeChecklistSection: some View {
+        section(title: "Next Trade Checklist", subtitle: "Repeatable actions for your next setup") {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(viewModel.nextTradeChecklist(for: trade), id: \.self) { item in
+                        bulletRow(item, icon: "checklist.checked", tint: JPColors.accent)
+                    }
+                }
+            }
+        }
+    }
+
+    private var generatedInsightsSection: some View {
+        section(title: "Connected Insights", subtitle: "Signals the coach can reference") {
+            let related = insightViewModel.insights(for: trade)
+            if related.isEmpty {
+                GlassCard {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: "link.circle")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(JPColors.accent)
+                            .frame(width: 52, height: 52)
+                            .background(JPColors.accentSoft, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                        Text("Analyze, replay, and review more trades to connect this trade to wider journal patterns.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(related.prefix(3)) { insight in
+                        InsightCard(insight: insight)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var warningsSection: some View {
+        if !viewModel.patternWarnings.isEmpty {
+            section(title: "Pattern Warnings", subtitle: "Potential issues to watch") {
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(viewModel.patternWarnings, id: \.self) { warning in
+                            bulletRow(warning, icon: "exclamationmark.triangle.fill", tint: JPColors.warning)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var overallGradeSection: some View {
         GlassCard {
             HStack(alignment: .center, spacing: 18) {
@@ -323,7 +649,7 @@ struct AITradeCoachView: View {
         Button {
             viewModel.saveReview(for: trade)
         } label: {
-            Label("Save Review", systemImage: "tray.and.arrow.down.fill")
+            Label("Save Review to History", systemImage: "tray.and.arrow.down.fill")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(JPColors.background)
                 .frame(maxWidth: .infinity)
@@ -360,6 +686,14 @@ struct AITradeCoachView: View {
 
     private var orange: Color {
         Color(red: 1.0, green: 0.48, blue: 0.20)
+    }
+
+    private var chartAnalysis: VisionAnalysisResponse? {
+        viewModel.visionAnalysis
+    }
+
+    private var chartConfidenceColor: Color {
+        scoreColor(chartAnalysis?.confidence ?? 0)
     }
 
     private var errorBinding: Binding<Bool> {
@@ -409,6 +743,88 @@ struct AITradeCoachView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(JPColors.border, lineWidth: 1)
+        )
+    }
+
+    private func professionalMetric(_ title: String, _ score: Int, icon: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 32, height: 32)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                Spacer()
+
+                Text("\(score)")
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(tint)
+            }
+
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(JPColors.primaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(JPColors.graphite)
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: didAppear ? proxy.size.width * CGFloat(score) / 100 : 0)
+                        .animation(.spring(response: 0.7, dampingFraction: 0.86), value: didAppear)
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(tint.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    private func chartMetric(_ title: String, _ value: String?, icon: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 32, height: 32)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                Spacer()
+
+                if viewModel.isAnalyzingVision {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(JPColors.border.opacity(0.8))
+                        .frame(width: 38, height: 8)
+                        .shimmer()
+                }
+            }
+
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(JPColors.primaryText)
+                .textCase(.uppercase)
+
+            Text(value ?? "Offline preview loading.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(JPColors.secondaryText)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 142, alignment: .leading)
+        .padding(14)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(tint.opacity(0.16), lineWidth: 1)
         )
     }
 
@@ -616,6 +1032,337 @@ private struct AICoachScreenshotCard: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+}
+
+private struct AIReviewHistoryView: View {
+    @Query(sort: \AITradeReview.updatedAt, order: .reverse) private var reviews: [AITradeReview]
+    @Query(sort: \Trade.date, order: .reverse) private var trades: [Trade]
+    @State private var searchText = ""
+    @State private var sortOption = AIReviewHistorySort.newest
+    @State private var didAppear = false
+
+    var body: some View {
+        ZStack {
+            JPColors.backgroundGradient.ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    progressSection
+                    sortControls
+
+                    if visibleReviews.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(Array(visibleReviews.enumerated()), id: \.element.id) { index, review in
+                            AIReviewHistoryRow(review: review, trade: trade(for: review))
+                                .premiumEntrance(active: didAppear, delay: Double(index) * 0.035)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 112)
+            }
+        }
+        .navigationTitle("AI History")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .searchable(text: $searchText, prompt: "Search pair, session, or summary")
+        .onAppear {
+            debugPrint("AI REVIEW HISTORY UPDATED")
+            withAnimation(.spring(response: 0.52, dampingFraction: 0.86)) {
+                didAppear = true
+            }
+        }
+    }
+
+    private var progressSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("AI Progress")
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text("Your saved coaching history across every analyzed trade.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                    }
+
+                    Spacer()
+
+                    Text("\(averageScore)")
+                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .foregroundStyle(scoreColor(averageScore))
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    progressTile("Average AI Score", "\(averageScore)", icon: "chart.line.uptrend.xyaxis", tint: scoreColor(averageScore))
+                    progressTile("Score Trend", scoreTrendText, icon: "arrow.triangle.2.circlepath", tint: scoreTrend >= 0 ? JPColors.profit : JPColors.loss)
+                    progressTile("Most Common Mistake", mostCommonMistake, icon: "exclamationmark.triangle.fill", tint: JPColors.warning)
+                    progressTile("Most Improved", mostImprovedCategory, icon: "sparkles", tint: JPColors.accent)
+                    progressTile("Worst Category", worstCategory, icon: "target", tint: JPColors.loss)
+                    progressTile("Saved Reviews", "\(reviews.count)", icon: "tray.full.fill", tint: JPColors.blue)
+                }
+            }
+        }
+        .premiumEntrance(active: didAppear, delay: 0.02)
+    }
+
+    private var sortControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(AIReviewHistorySort.allCases) { option in
+                    Button {
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                            sortOption = option
+                        }
+                        JPHaptics.selection()
+                    } label: {
+                        Text(option.rawValue)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(sortOption == option ? JPColors.background : JPColors.primaryText)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(sortOption == option ? JPColors.accent : JPColors.graphite, in: Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(JPColors.border, lineWidth: sortOption == option ? 0 : 1)
+                            )
+                    }
+                    .buttonStyle(ScalingButtonStyle())
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .premiumEntrance(active: didAppear, delay: 0.05)
+    }
+
+    private var emptyState: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Image(systemName: "sparkles.square.filled.on.square")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(JPColors.accent)
+                    .frame(width: 66, height: 66)
+                    .background(JPColors.accentSoft, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+                Text(reviews.isEmpty ? "Your AI history starts with the first saved review." : "No reviews match this search.")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(JPColors.primaryText)
+
+                Text("Analyze a trade, save the review, and Journaling Pips will build a searchable coaching timeline that works offline.")
+                    .font(.subheadline)
+                    .foregroundStyle(JPColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .premiumEntrance(active: didAppear, delay: 0.08)
+    }
+
+    private var visibleReviews: [AITradeReview] {
+        let filtered = reviews.filter { review in
+            guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return true
+            }
+
+            let query = searchText.lowercased()
+            let trade = trade(for: review)
+            return review.summary.lowercased().contains(query)
+                || review.grade.lowercased().contains(query)
+                || (trade?.pair.lowercased().contains(query) ?? false)
+                || (trade?.session.rawValue.lowercased().contains(query) ?? false)
+        }
+
+        switch sortOption {
+        case .newest:
+            return filtered.sorted { $0.updatedAt > $1.updatedAt }
+        case .highestScore:
+            return filtered.sorted { $0.overallScore > $1.overallScore }
+        case .lowestScore:
+            return filtered.sorted { $0.overallScore < $1.overallScore }
+        case .pair:
+            return filtered.sorted { (trade(for: $0)?.pair ?? "") < (trade(for: $1)?.pair ?? "") }
+        case .session:
+            return filtered.sorted { (trade(for: $0)?.session.rawValue ?? "") < (trade(for: $1)?.session.rawValue ?? "") }
+        }
+    }
+
+    private var averageScore: Int {
+        guard !reviews.isEmpty else { return 0 }
+        return Int((Double(reviews.reduce(0) { $0 + $1.overallScore }) / Double(reviews.count)).rounded())
+    }
+
+    private var scoreTrend: Int {
+        let sorted = reviews.sorted { $0.updatedAt > $1.updatedAt }
+        guard let latest = sorted.first, sorted.count > 1 else { return 0 }
+        let previous = sorted.dropFirst()
+        let previousAverage = Double(previous.reduce(0) { $0 + $1.overallScore }) / Double(previous.count)
+        return Int((Double(latest.overallScore) - previousAverage).rounded())
+    }
+
+    private var scoreTrendText: String {
+        scoreTrend == 0 ? "Flat" : "\(scoreTrend > 0 ? "+" : "")\(scoreTrend)"
+    }
+
+    private var mostCommonMistake: String {
+        let tags = reviews.compactMap { trade(for: $0) }.flatMap(\.mistakeTags).map(\.rawValue)
+        let grouped = Dictionary(grouping: tags, by: { $0 }).mapValues(\.count)
+        return grouped.max { $0.value < $1.value }?.key ?? "None logged"
+    }
+
+    private var mostImprovedCategory: String {
+        guard let best = categoryAverages.max(by: { $0.value < $1.value }) else {
+            return "Not enough data"
+        }
+        return best.key
+    }
+
+    private var worstCategory: String {
+        guard let worst = categoryAverages.min(by: { $0.value < $1.value }) else {
+            return "Not enough data"
+        }
+        return worst.key
+    }
+
+    private var categoryAverages: [String: Int] {
+        guard !reviews.isEmpty else { return [:] }
+        let count = Double(reviews.count)
+        return [
+            "Execution": Int((Double(reviews.reduce(0) { $0 + $1.executionScore }) / count).rounded()),
+            "Risk": Int((Double(reviews.reduce(0) { $0 + $1.riskManagementScore }) / count).rounded()),
+            "Psychology": Int((Double(reviews.reduce(0) { $0 + $1.psychologyScore }) / count).rounded()),
+            "Journal": Int((Double(reviews.reduce(0) { $0 + $1.journalQualityScore }) / count).rounded()),
+            "Discipline": Int((Double(reviews.reduce(0) { $0 + $1.strategyDisciplineScore }) / count).rounded())
+        ]
+    }
+
+    private func trade(for review: AITradeReview) -> Trade? {
+        trades.first { $0.id == review.tradeID }
+    }
+
+    private func progressTile(_ title: String, _ value: String, icon: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            Text(value)
+                .font(.headline.weight(.black))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(JPColors.secondaryText)
+                .textCase(.uppercase)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .padding(14)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(tint.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    private func scoreColor(_ score: Int) -> Color {
+        switch score {
+        case 85...100:
+            return JPColors.profit
+        case 70...84:
+            return JPColors.warning
+        case 55...69:
+            return Color(red: 1.0, green: 0.48, blue: 0.20)
+        default:
+            return JPColors.loss
+        }
+    }
+}
+
+private enum AIReviewHistorySort: String, CaseIterable, Identifiable {
+    case newest = "Newest"
+    case highestScore = "Highest Score"
+    case lowestScore = "Lowest Score"
+    case pair = "Pair"
+    case session = "Session"
+
+    var id: String { rawValue }
+}
+
+private struct AIReviewHistoryRow: View {
+    let review: AITradeReview
+    let trade: Trade?
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(trade?.pair.isEmpty == false ? trade?.pair ?? "Unknown Trade" : "Unknown Trade")
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text("\(trade?.session.rawValue ?? "Session Unknown") • \(review.updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(JPColors.secondaryText)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(review.grade)
+                            .font(.title2.weight(.black))
+                            .foregroundStyle(scoreColor(review.overallScore))
+
+                        Text("\(review.overallScore)/100")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(JPColors.secondaryText)
+                    }
+                }
+
+                Text(review.summary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(JPColors.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    capsule("Execution \(review.executionScore)", tint: JPColors.accent)
+                    capsule("Risk \(review.riskManagementScore)", tint: JPColors.profit)
+                    capsule("Psych \(review.psychologyScore)", tint: JPColors.purple)
+                }
+            }
+        }
+    }
+
+    private func capsule(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(tint.opacity(0.12), in: Capsule())
+    }
+
+    private func scoreColor(_ score: Int) -> Color {
+        switch score {
+        case 85...100:
+            return JPColors.profit
+        case 70...84:
+            return JPColors.warning
+        case 55...69:
+            return Color(red: 1.0, green: 0.48, blue: 0.20)
+        default:
+            return JPColors.loss
         }
     }
 }

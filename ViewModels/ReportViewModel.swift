@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftData
+import UIKit
 
 struct ShareExportItem: Identifiable {
     let id = UUID()
@@ -40,8 +41,11 @@ final class ReportViewModel: ObservableObject {
                 profile: profile
             )
             let url = try exportService.export(payload: payload)
+            DisciplineTracker(context: modelContext).recordPDFReportExported()
+            IntelligenceEngine(context: modelContext).observe(.pdfExported)
             shareItem = ShareExportItem(url: url)
             errorMessage = nil
+            JPHaptics.notify(.success)
         } catch {
             errorMessage = "Unable to generate \(type.rawValue.lowercased())."
         }

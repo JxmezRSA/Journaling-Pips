@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftData
+import UIKit
 
 struct PlanChecklistItem: Codable, Identifiable, Hashable {
     let id: UUID
@@ -43,6 +44,7 @@ final class PlanViewModel: ObservableObject {
     let quote: String
 
     private var repository: PlanRepository?
+    private var modelContext: ModelContext?
     private let calendar = Calendar.current
 
     init() {
@@ -100,6 +102,7 @@ final class PlanViewModel: ObservableObject {
     }
 
     func configure(context: ModelContext) {
+        modelContext = context
         if repository == nil {
             repository = PlanRepository(context: context)
         }
@@ -126,6 +129,7 @@ final class PlanViewModel: ObservableObject {
         bias = newBias
         plan?.bias = newBias
         save()
+        JPHaptics.selection()
     }
 
     func addSymbol(_ symbol: String) {
@@ -136,6 +140,7 @@ final class PlanViewModel: ObservableObject {
 
         watchlist.append(cleaned)
         persistWatchlist()
+        JPHaptics.impact(.light)
     }
 
     func deleteSymbol(_ symbol: String) {
@@ -158,6 +163,13 @@ final class PlanViewModel: ObservableObject {
 
         checklist[index].isComplete.toggle()
         persistChecklist()
+        recordPlanProgress()
+        recordIntelligenceEvent(.checklistCompleted)
+        JPHaptics.impact(checklist[index].isComplete ? .medium : .light)
+        if completionPercentage == 100 {
+            JPHaptics.notify(.success)
+            recordIntelligenceEvent(.morningPlanCompleted)
+        }
     }
 
     func updateNotes(_ notes: String) {
@@ -174,6 +186,7 @@ final class PlanViewModel: ObservableObject {
 
         goals.append(PlanGoal(title: cleaned))
         persistGoals()
+        JPHaptics.impact(.light)
     }
 
     func toggleGoal(_ goal: PlanGoal) {
@@ -183,6 +196,10 @@ final class PlanViewModel: ObservableObject {
 
         goals[index].isComplete.toggle()
         persistGoals()
+        if goals[index].isComplete {
+            recordIntelligenceEvent(.goalAchieved)
+        }
+        JPHaptics.impact(goals[index].isComplete ? .medium : .light)
     }
 
     func deleteGoal(_ goal: PlanGoal) {
@@ -200,6 +217,7 @@ final class PlanViewModel: ObservableObject {
         maximumDailyLoss = plan.maximumDailyLoss == 0 ? "" : numberText(plan.maximumDailyLoss)
         maximumTrades = "\(max(plan.maximumTrades, 0))"
         dailyProfitGoal = plan.dailyProfitGoal == 0 ? "" : numberText(plan.dailyProfitGoal)
+        recordPlanProgress()
     }
 
     private func persistWatchlist() {
@@ -224,6 +242,22 @@ final class PlanViewModel: ObservableObject {
         } catch {
             errorMessage = "Unable to save today's plan."
         }
+    }
+
+    private func recordPlanProgress() {
+        guard let modelContext else {
+            return
+        }
+
+        DisciplineTracker(context: modelContext).recordPlanProgress(checklistCompletion: Double(completionPercentage) / 100.0)
+    }
+
+    private func recordIntelligenceEvent(_ event: IntelligenceEvent) {
+        guard let modelContext else {
+            return
+        }
+
+        IntelligenceEngine(context: modelContext).observe(event)
     }
 
     private func encode<Value: Encodable>(_ value: Value) -> String {

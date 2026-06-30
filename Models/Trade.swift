@@ -96,39 +96,52 @@ final class Trade {
         }
     }
 
-    var id: UUID
-    var pair: String
-    private var directionRawValue: String
-    var entryPrice: Double
-    var stopLoss: Double
-    var takeProfit: Double
-    var profitLoss: Double
-    var notes: String
-    var exitPrice: Double
-    var lotSize: Double
-    var riskPercent: Double
-    var date: Date
-    private var statusRawValue: String
-    var riskReward: Double
-    private var sessionRawValue: String
-    private var strategyRawValue: String
-    private var mistakeTagsRawValue: String
-    var confidence: Double
-    var emotion: String
-    var executionScore: Int
-    var followedPlan: Bool
-    var tradeThesis: String
-    var marketContext: String
-    var executionReview: String
-    var lessonsLearned: String
-    var beforeImagePath: String
-    var duringImagePath: String
-    var afterImagePath: String
+    enum SyncStatus: String, CaseIterable, Identifiable {
+        case pending = "Pending"
+        case synced = "Synced"
+        case failed = "Failed"
+        case deleted = "Deleted"
+
+        var id: String { rawValue }
+    }
+
+    var id: UUID = UUID()
+    var pair: String = ""
+    private var directionRawValue: String = Direction.buy.rawValue
+    var entryPrice: Double = 0
+    var stopLoss: Double = 0
+    var takeProfit: Double = 0
+    var profitLoss: Double = 0
+    var notes: String = ""
+    var exitPrice: Double = 0
+    var lotSize: Double = 0
+    var riskPercent: Double = 0
+    var date: Date = Date()
+    private var statusRawValue: String = Status.breakeven.rawValue
+    var riskReward: Double = 0
+    private var sessionRawValue: String = Session.london.rawValue
+    private var strategyRawValue: String = Strategy.other.rawValue
+    private var mistakeTagsRawValue: String = ""
+    var confidence: Double = 5
+    var emotion: String = "Neutral"
+    var executionScore: Int = 0
+    var followedPlan: Bool = true
+    var tradeThesis: String = ""
+    var marketContext: String = ""
+    var executionReview: String = ""
+    var lessonsLearned: String = ""
+    var beforeImagePath: String = ""
+    var duringImagePath: String = ""
+    var afterImagePath: String = ""
     var beforeEntryImageData: Data?
     var duringTradeImageData: Data?
     var afterExitImageData: Data?
     var tradeOpenTime: Date?
     var tradeCloseTime: Date?
+    var remoteId: String? = nil
+    private var syncStatusRawValue: String = SyncStatus.pending.rawValue
+    var lastSyncedAt: Date? = nil
+    var updatedAt: Date = Date()
 
     var direction: Direction {
         get { Direction(rawValue: directionRawValue) ?? .buy }
@@ -159,6 +172,11 @@ final class Trade {
         set {
             mistakeTagsRawValue = newValue.map(\.rawValue).joined(separator: "|")
         }
+    }
+
+    var syncStatus: SyncStatus {
+        get { SyncStatus(rawValue: syncStatusRawValue) ?? .pending }
+        set { syncStatusRawValue = newValue.rawValue }
     }
 
     init(
@@ -194,7 +212,11 @@ final class Trade {
         duringTradeImageData: Data? = nil,
         afterExitImageData: Data? = nil,
         tradeOpenTime: Date? = nil,
-        tradeCloseTime: Date? = nil
+        tradeCloseTime: Date? = nil,
+        remoteId: String? = nil,
+        syncStatus: SyncStatus = .pending,
+        lastSyncedAt: Date? = nil,
+        updatedAt: Date = Date()
     ) {
         self.id = id
         self.pair = pair
@@ -229,5 +251,9 @@ final class Trade {
         self.afterExitImageData = afterExitImageData
         self.tradeOpenTime = tradeOpenTime
         self.tradeCloseTime = tradeCloseTime
+        self.remoteId = remoteId
+        self.syncStatusRawValue = syncStatus.rawValue
+        self.lastSyncedAt = lastSyncedAt
+        self.updatedAt = updatedAt
     }
 }

@@ -11,17 +11,17 @@ final class MorningPlan {
         var id: String { rawValue }
     }
 
-    var id: UUID
-    var date: Date
-    private var biasRawValue: String
-    var watchlistRawValue: String
-    var maximumRiskPercent: Double
-    var maximumDailyLoss: Double
-    var maximumTrades: Int
-    var dailyProfitGoal: Double
-    var checklistRawValue: String
-    var dailyNotes: String
-    var goalsRawValue: String
+    var id: UUID = UUID()
+    var date: Date = Date()
+    private var biasRawValue: String = MarketBias.neutral.rawValue
+    var watchlistRawValue: String = ""
+    var maximumRiskPercent: Double = 1
+    var maximumDailyLoss: Double = 0
+    var maximumTrades: Int = 3
+    var dailyProfitGoal: Double = 0
+    var checklistRawValue: String = ""
+    var dailyNotes: String = ""
+    var goalsRawValue: String = ""
 
     var bias: MarketBias {
         get { MarketBias(rawValue: biasRawValue) ?? .neutral }

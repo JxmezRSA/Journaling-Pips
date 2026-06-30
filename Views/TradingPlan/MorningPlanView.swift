@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct MorningPlanView: View {
     @Environment(\.modelContext) private var modelContext
@@ -7,6 +8,7 @@ struct MorningPlanView: View {
     @State private var didAppear = false
     @State private var symbolText = ""
     @State private var goalText = ""
+    @State private var showRiskPlanUpdated = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +35,17 @@ struct MorningPlanView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
                     .padding(.bottom, 112)
+                }
+
+                if showRiskPlanUpdated {
+                    VStack {
+                        PremiumSuccessBanner(title: "Risk plan updated", message: "Your daily limits are saved.", icon: "checkmark.shield.fill", tint: JPColors.accent)
+                            .padding(.horizontal, 18)
+                            .padding(.top, 10)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        Spacer()
+                    }
+                    .zIndex(5)
                 }
             }
             .navigationTitle("Plan")
@@ -184,6 +197,23 @@ struct MorningPlanView: View {
                 riskInput(title: "Maximum Trades", value: $viewModel.maximumTrades, icon: "number", tint: JPColors.blue)
                 riskInput(title: "Daily Profit Goal", value: $viewModel.dailyProfitGoal, icon: "arrow.up.right", tint: JPColors.profit)
             }
+
+            Button {
+                finishRiskPlanEditing()
+            } label: {
+                Label("Done", systemImage: "checkmark.circle.fill")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(JPColors.background)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        LinearGradient(colors: [JPColors.accent, JPColors.profit], startPoint: .leading, endPoint: .trailing),
+                        in: Capsule()
+                    )
+                    .shadow(color: JPColors.accent.opacity(0.22), radius: 18, x: 0, y: 8)
+            }
+            .buttonStyle(ScalingButtonStyle())
+            .accessibilityLabel("Done. Save daily risk plan")
         }
         .onChange(of: viewModel.maximumRiskPercent) { _, _ in viewModel.updateRiskPlan() }
         .onChange(of: viewModel.maximumDailyLoss) { _, _ in viewModel.updateRiskPlan() }
@@ -465,6 +495,23 @@ struct MorningPlanView: View {
                 .foregroundStyle(JPColors.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+        }
+    }
+
+    private func finishRiskPlanEditing() {
+        viewModel.updateRiskPlan()
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        JPHaptics.notify(.success)
+
+        withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+            showRiskPlanUpdated = true
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                showRiskPlanUpdated = false
+            }
         }
     }
 

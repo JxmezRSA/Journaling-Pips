@@ -15,10 +15,14 @@ struct MetricCard: View {
                         Image(systemName: icon)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(tint)
-                            .frame(width: 42, height: 42)
+                            .frame(width: JPDesign.iconSize, height: JPDesign.iconSize)
                             .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: JPDesign.compactRadius, style: .continuous)
                                     .fill(tint.opacity(0.16))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: JPDesign.compactRadius, style: .continuous)
+                                    .stroke(tint.opacity(0.22), lineWidth: 1)
                             )
 
                         Spacer()
@@ -26,8 +30,11 @@ struct MetricCard: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text(title)
-                            .font(.caption.weight(.semibold))
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(JPColors.secondaryText)
+                            .textCase(.uppercase)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
 
                         Text(value)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -51,6 +58,10 @@ struct MetricCard: View {
                 .padding(.vertical, 28)
                 .shadow(color: tint.opacity(0.55), radius: 12, x: 0, y: 0)
         }
-        .shadow(color: tint.opacity(0.08), radius: 18, x: 0, y: 8)
+        .shadow(color: tint.opacity(0.10), radius: 18, x: 0, y: 8)
+        .contentTransition(.numericText())
+        .animation(JPDesign.smoothSpring, value: value)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value), \(detail)")
     }
 }
