@@ -1349,6 +1349,7 @@ struct AddTradeView: View {
     }
 
     private func screenshotCard(_ slot: Trade.ScreenshotSlot, data: Data?, item: Binding<PhotosPickerItem?>) -> some View {
+        let selectedItemKey = String(describing: item.wrappedValue)
         let currentStatus: ScreenshotStatus = {
             switch slot {
             case .beforeEntry:
@@ -1359,7 +1360,22 @@ struct AddTradeView: View {
                 return afterScreenshotStatus
             }
         }()
-        let statusText = data == nil ? "No image selected" : (currentStatus == .queued ? "Queued for sync" : "Image selected")
+        let hasLocalImage = data != nil || item.wrappedValue != nil
+        let statusText: String = {
+            if currentStatus == .uploaded { return "Uploaded" }
+            if currentStatus == .queued { return "Queued for sync" }
+            return hasLocalImage ? "Image selected" : "No image selected"
+        }()
+        let _ = {
+            switch slot {
+            case .beforeEntry:
+                debugPrint("SCREENSHOT STATUS BEFORE:", statusText)
+            case .duringTrade:
+                debugPrint("SCREENSHOT STATUS DURING:", statusText)
+            case .afterExit:
+                debugPrint("SCREENSHOT STATUS AFTER:", statusText)
+            }
+        }()
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -1446,6 +1462,9 @@ struct AddTradeView: View {
         }
         .padding(14)
         .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .task(id: selectedItemKey) {
+            loadPhoto(item.wrappedValue, for: slot)
+        }
     }
 
     private func summaryTile(_ title: String, _ value: String, icon: String, tint: Color) -> some View {
