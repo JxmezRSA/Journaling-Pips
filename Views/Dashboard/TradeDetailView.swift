@@ -40,6 +40,7 @@ struct TradeDetailView: View {
                     relatedInsightsSection
                     tradeInformationSection
                     executionReviewSection
+                    checklistSummarySection
                     strategyReviewSection
                     journalSection
                     screenshotsSection
@@ -58,6 +59,23 @@ struct TradeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    activeForm = TradeDetailForm(mode: .edit(trade))
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                .accessibilityLabel("Edit trade")
+
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel("Delete trade")
+            }
+        }
         .sheet(item: $activeForm) { form in
             AddTradeView(mode: form.mode)
                 .environmentObject(tradeViewModel)
@@ -181,8 +199,22 @@ struct TradeDetailView: View {
                 infoTile("Exit Price", trade.exitPrice == 0 ? "--" : number(trade.exitPrice), icon: "flag", tint: JPColors.warning)
                 infoTile("Lot Size", trade.lotSize == 0 ? "--" : number(trade.lotSize), icon: "square.stack.3d.up", tint: JPColors.blue)
                 infoTile("Risk %", trade.riskPercent == 0 ? "--" : "\(number(trade.riskPercent))%", icon: "percent", tint: JPColors.purple)
+                infoTile("Dollar Risk", dollarRiskText, icon: "shield.lefthalf.filled", tint: JPColors.warning)
                 infoTile("Profit / Loss", currency(trade.profitLoss), icon: "dollarsign.circle", tint: outcomeColor)
                 infoTile("Risk Reward", riskRewardText, icon: "scale.3d", tint: JPColors.warning)
+            }
+        }
+    }
+
+    private var checklistSummarySection: some View {
+        section(title: "Checklist", subtitle: "Saved trade completion signals") {
+            GlassCard {
+                VStack(spacing: 12) {
+                    checklistRow("Followed Plan", value: trade.followedPlan ? "Yes" : "No", isComplete: trade.followedPlan)
+                    checklistRow("Risk Recorded", value: trade.riskPercent > 0 || trade.lotSize > 0 ? "Yes" : "No", isComplete: trade.riskPercent > 0 || trade.lotSize > 0)
+                    checklistRow("Journal Notes", value: hasJournalNotes ? "Complete" : "Missing", isComplete: hasJournalNotes)
+                    checklistRow("Screenshots", value: hasScreenshots ? "Attached" : "None", isComplete: hasScreenshots)
+                }
             }
         }
     }
@@ -631,6 +663,17 @@ struct TradeDetailView: View {
         String(format: "1:%.2f", trade.riskReward)
     }
 
+    private var dollarRiskText: String {
+        let priceRisk = abs(trade.entryPrice - trade.stopLoss)
+        guard priceRisk > 0, trade.lotSize > 0 else { return "--" }
+        return currency(priceRisk * trade.lotSize)
+    }
+
+    private var hasJournalNotes: Bool {
+        [trade.notes, trade.tradeThesis, trade.marketContext, trade.executionReview, trade.lessonsLearned]
+            .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
     private var hasScreenshots: Bool {
         Trade.ScreenshotSlot.allCases.contains { screenshotData(for: $0) != nil }
     }
@@ -1024,6 +1067,29 @@ struct TradeDetailView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
+    }
+
+    private func checklistRow(_ title: String, value: String, isComplete: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(isComplete ? JPColors.profit : JPColors.secondaryText)
+
+            Text(title)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(JPColors.primaryText)
+
+            Spacer()
+
+            Text(value)
+                .font(.caption.weight(.black))
+                .foregroundStyle(isComplete ? JPColors.profit : JPColors.secondaryText)
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background((isComplete ? JPColors.profit : JPColors.graphite).opacity(0.14), in: Capsule())
+        }
+        .padding(12)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func actionLabel(_ title: String, icon: String, foreground: Color, background: Color) -> some View {
