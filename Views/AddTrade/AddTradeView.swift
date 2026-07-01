@@ -239,8 +239,12 @@ struct AddTradeView: View {
             _exitPrice = State(initialValue: trade.exitPrice == 0 ? "" : Self.numberText(trade.exitPrice))
             _lotSize = State(initialValue: trade.lotSize == 0 ? "" : Self.numberText(trade.lotSize))
             _riskPercent = State(initialValue: trade.riskPercent == 0 ? "" : Self.numberText(trade.riskPercent))
+            let derivedDollarRisk = abs(trade.entryPrice - trade.stopLoss) * trade.lotSize
+            _dollarRisk = State(initialValue: derivedDollarRisk == 0 ? "" : Self.numberText(derivedDollarRisk))
             _confidence = State(initialValue: trade.confidence)
             _selectedMood = State(initialValue: trade.emotion)
+            _discipline = State(initialValue: trade.followedPlan ? 8 : 4)
+            _checklist = State(initialValue: trade.followedPlan ? Self.defaultChecklist.map { ChecklistItem(id: $0.id, title: $0.title, isComplete: true) } : Self.defaultChecklist)
             _tradeThesis = State(initialValue: trade.tradeThesis.isEmpty ? trade.notes : trade.tradeThesis)
             _marketContext = State(initialValue: trade.marketContext)
             _executionReview = State(initialValue: trade.executionReview)
@@ -755,8 +759,8 @@ struct AddTradeView: View {
 
     private var simpleSaveButtonTitle: String {
         if isSaving { return "Saving..." }
-        if saveSucceeded { return "Trade saved" }
-        return "Save Trade"
+        if saveSucceeded { return successTitle }
+        return saveButtonTitle
     }
 
     private var simpleSaveButtonColor: Color {
@@ -1922,6 +1926,10 @@ struct AddTradeView: View {
                 session: session,
                 strategy: strategy,
                 mistakeTags: sortedTags,
+                confidence: confidence,
+                emotion: selectedMood,
+                executionScore: Int(discipline.rounded()),
+                followedPlan: checklistCompletion >= 1,
                 exitPrice: exitPriceValue,
                 lotSize: lotSizeValue,
                 riskPercent: riskPercentValue,
@@ -1950,6 +1958,10 @@ struct AddTradeView: View {
                 session: session,
                 strategy: strategy,
                 mistakeTags: sortedTags,
+                confidence: confidence,
+                emotion: selectedMood,
+                executionScore: Int(discipline.rounded()),
+                followedPlan: checklistCompletion >= 1,
                 exitPrice: exitPriceValue,
                 lotSize: lotSizeValue,
                 riskPercent: riskPercentValue,

@@ -73,6 +73,10 @@ final class TradeViewModel: ObservableObject {
         session: Trade.Session,
         strategy: Trade.Strategy,
         mistakeTags: [Trade.MistakeTag],
+        confidence: Double = 5,
+        emotion: String = "Neutral",
+        executionScore: Int = 0,
+        followedPlan: Bool = true,
         exitPrice: Double = 0,
         lotSize: Double = 0,
         riskPercent: Double = 0,
@@ -115,11 +119,16 @@ final class TradeViewModel: ObservableObject {
             exitPrice: exitPrice,
             lotSize: lotSize,
             riskPercent: riskPercent,
+            date: tradeOpenTime ?? Date(),
             status: status,
             riskReward: riskReward,
             session: session,
             strategy: strategy,
             mistakeTags: mistakeTags,
+            confidence: confidence,
+            emotion: emotion,
+            executionScore: executionScore,
+            followedPlan: followedPlan,
             tradeThesis: tradeThesis.trimmingCharacters(in: .whitespacesAndNewlines),
             marketContext: marketContext.trimmingCharacters(in: .whitespacesAndNewlines),
             executionReview: executionReview.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -158,6 +167,10 @@ final class TradeViewModel: ObservableObject {
         session: Trade.Session,
         strategy: Trade.Strategy,
         mistakeTags: [Trade.MistakeTag],
+        confidence: Double,
+        emotion: String,
+        executionScore: Int,
+        followedPlan: Bool,
         exitPrice: Double,
         lotSize: Double,
         riskPercent: Double,
@@ -196,9 +209,14 @@ final class TradeViewModel: ObservableObject {
         trade.session = session
         trade.strategy = strategy
         trade.mistakeTags = mistakeTags
+        trade.confidence = confidence
+        trade.emotion = emotion
+        trade.executionScore = executionScore
+        trade.followedPlan = followedPlan
         trade.exitPrice = exitPrice
         trade.lotSize = lotSize
         trade.riskPercent = riskPercent
+        trade.date = tradeOpenTime ?? trade.date
         trade.tradeThesis = tradeThesis.trimmingCharacters(in: .whitespacesAndNewlines)
         trade.marketContext = marketContext.trimmingCharacters(in: .whitespacesAndNewlines)
         trade.executionReview = executionReview.trimmingCharacters(in: .whitespacesAndNewlines)
