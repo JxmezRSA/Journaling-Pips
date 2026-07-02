@@ -790,7 +790,7 @@ final class AnalyticsViewModel: ObservableObject {
     }
 
     private func riskReward(_ value: Double) -> String {
-        value > 0 ? "1:\(String(format: "%.2f", value))" : "--"
+        value > 0 ? "\(String(format: "%.2f", value)) R" : "--"
     }
 
     private func tint(for value: Double) -> Color {
@@ -831,7 +831,7 @@ final class AnalyticsViewModel: ObservableObject {
         }
 
         if suffix == "RR" {
-            return "\(arrow) \(delta >= 0 ? "+" : "")\(String(format: "%.2f", delta))RR"
+            return "\(arrow) \(delta >= 0 ? "+" : "")\(String(format: "%.2f", delta)) R"
         }
 
         return "\(arrow) \(delta >= 0 ? "+" : "")\(Int(delta.rounded()))\(suffix)"

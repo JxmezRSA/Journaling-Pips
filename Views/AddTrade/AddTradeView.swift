@@ -267,7 +267,7 @@ struct AddTradeView: View {
                 JPColors.backgroundGradient.ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 30) {
                         heroHeader
                         basicsSection
                         riskSection
@@ -282,7 +282,7 @@ struct AddTradeView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 72)
+                    .padding(.bottom, 176)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }

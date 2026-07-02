@@ -239,7 +239,7 @@ private struct TradingInsightsEngine {
     }
 
     private func rr(_ value: Double) -> String {
-        "\(number(value))R"
+        "\(number(value)) R"
     }
 
     private func number(_ value: Double) -> String {
@@ -391,8 +391,10 @@ struct TradingInsightsView: View {
     }
 
     private var recommendations: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: "Recommendations", subtitle: "Three actions to improve your next trading week")
+        let subtitle = snapshot.recommendations.count >= 3 ? "Three actions to improve your next trading week" : "Actions to improve your next trading week"
+
+        return VStack(alignment: .leading, spacing: 14) {
+            SectionHeader(title: "Recommendations", subtitle: subtitle)
 
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(Array(snapshot.recommendations.enumerated()), id: \.offset) { index, recommendation in

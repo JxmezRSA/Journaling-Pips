@@ -46,7 +46,7 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 112)
+                    .padding(.bottom, 176)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }

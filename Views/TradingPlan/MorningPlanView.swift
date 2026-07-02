@@ -16,7 +16,7 @@ struct MorningPlanView: View {
                 JPColors.backgroundGradient.ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 26) {
+                    VStack(alignment: .leading, spacing: 32) {
                         greeting
 
                         if !viewModel.hasConfiguredAnything {
@@ -34,7 +34,7 @@ struct MorningPlanView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 112)
+                    .padding(.bottom, 176)
                 }
 
                 if showRiskPlanUpdated {
@@ -48,7 +48,7 @@ struct MorningPlanView: View {
                     .zIndex(5)
                 }
             }
-            .navigationTitle("Plan")
+            .navigationTitle("")
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
@@ -116,17 +116,53 @@ struct MorningPlanView: View {
 
     private var marketBiasSection: some View {
         formSection(title: "Today's Market Bias", subtitle: "Choose the stance you will trade from") {
-            Picker("Market Bias", selection: Binding(
-                get: { viewModel.bias },
-                set: { viewModel.setBias($0) }
-            )) {
+            HStack(spacing: 8) {
                 ForEach(MorningPlan.MarketBias.allCases) { bias in
-                    Text(bias.rawValue).tag(bias)
+                    marketBiasButton(bias)
                 }
             }
-            .pickerStyle(.segmented)
-            .tint(JPColors.accent)
+            .padding(5)
+            .background(JPColors.graphite.opacity(0.72), in: RoundedRectangle(cornerRadius: 21, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 21, style: .continuous)
+                    .stroke(JPColors.border, lineWidth: 1)
+            )
         }
+    }
+
+    private func marketBiasButton(_ bias: MorningPlan.MarketBias) -> some View {
+        let isSelected = viewModel.bias == bias
+
+        return Button {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                viewModel.setBias(bias)
+            }
+            JPHaptics.selection()
+        } label: {
+            Text(bias.rawValue)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(isSelected ? JPColors.background : JPColors.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
+                .background(biasButtonBackground(isSelected: isSelected), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(isSelected ? JPColors.accent.opacity(0.55) : JPColors.border, lineWidth: 1)
+                )
+                .shadow(color: isSelected ? JPColors.accent.opacity(0.24) : .clear, radius: 14, x: 0, y: 8)
+        }
+        .buttonStyle(ScalingButtonStyle())
+        .accessibilityLabel("\(bias.rawValue) market bias")
+    }
+
+    private func biasButtonBackground(isSelected: Bool) -> LinearGradient {
+        if isSelected {
+            return LinearGradient(colors: [JPColors.accent, JPColors.blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+
+        return LinearGradient(colors: [JPColors.surface, JPColors.elevatedSurface], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private var watchlistSection: some View {
@@ -407,11 +443,11 @@ struct MorningPlanView: View {
     }
 
     private func formSection<Content: View>(title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: title, subtitle: subtitle)
 
             GlassCard {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 20) {
                     content()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

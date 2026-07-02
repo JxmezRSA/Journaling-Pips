@@ -67,10 +67,10 @@ struct CalendarView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 122)
+                    .padding(.bottom, 160)
                 }
             }
-            .navigationTitle("Calendar")
+            .navigationTitle("")
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedDay) { day in
@@ -217,23 +217,36 @@ struct CalendarView: View {
                     .stroke(JPColors.border, lineWidth: 1)
             )
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(CalendarTradeFilter.allCases) { filter in
-                        CalendarFilterChip(
-                            title: filter.rawValue,
-                            icon: filter.icon,
-                            isSelected: selectedFilter == filter
-                        ) {
-                            withAnimation(JPDesign.quickSpring) {
-                                selectedFilter = filter
-                            }
-                            JPHaptics.selection()
+            Menu {
+                ForEach(CalendarTradeFilter.allCases) { filter in
+                    Button {
+                        withAnimation(JPDesign.quickSpring) {
+                            selectedFilter = filter
                         }
+                        JPHaptics.selection()
+                    } label: {
+                        Label(filter.rawValue, systemImage: filter.icon)
                     }
                 }
-                .padding(.vertical, 2)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: selectedFilter.icon)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(JPColors.accent)
+                    Text(selectedFilter.rawValue)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(JPColors.primaryText)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(JPColors.secondaryText)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(JPColors.elevatedSurface.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(JPColors.border, lineWidth: 1))
             }
+            .accessibilityLabel("Calendar filter")
 
             if let selectedDayFilter {
                 Button {
@@ -271,27 +284,37 @@ struct CalendarView: View {
                         }
                     }
 
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 7), spacing: 9) {
-                        ForEach(0..<leadingBlankDays(for: displayedMonth), id: \.self) { index in
-                            Color.clear
-                                .aspectRatio(1, contentMode: .fit)
-                                .id("blank-\(index)")
-                        }
+                    GeometryReader { proxy in
+                        let spacing: CGFloat = 8
+                        let cellSize = max(28, (proxy.size.width - spacing * 6) / 7)
 
-                        ForEach(dailySnapshots) { day in
-                            CalendarHeatmapCell(
-                                snapshot: day,
-                                isSelected: selectedDayFilter.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false,
-                                isToday: calendar.isDateInToday(day.date)
-                            ) {
-                                withAnimation(JPDesign.smoothSpring) {
-                                    selectedDayFilter = day.date
-                                    selectedDay = day
+                        VStack(spacing: spacing) {
+                            ForEach(heatmapRows) { row in
+                                HStack(spacing: spacing) {
+                                    ForEach(row.items) { item in
+                                        if let day = item.snapshot {
+                                            CalendarHeatmapCell(
+                                                snapshot: day,
+                                                isSelected: selectedDayFilter.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false,
+                                                isToday: calendar.isDateInToday(day.date)
+                                            ) {
+                                                withAnimation(JPDesign.smoothSpring) {
+                                                    selectedDayFilter = day.date
+                                                    selectedDay = day
+                                                }
+                                                JPHaptics.selection()
+                                            }
+                                            .frame(width: cellSize, height: cellSize)
+                                        } else {
+                                            Color.clear
+                                                .frame(width: cellSize, height: cellSize)
+                                        }
+                                    }
                                 }
-                                JPHaptics.selection()
                             }
                         }
                     }
+                    .frame(height: heatmapHeight)
                 }
             }
         }
@@ -302,9 +325,16 @@ struct CalendarView: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Monthly Insights", subtitle: "A clear read on this month")
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(monthlyInsightTiles) { tile in
-                    CalendarInsightTile(tile: tile)
+            VStack(spacing: 12) {
+                ForEach(monthlyInsightRows) { row in
+                    HStack(spacing: 12) {
+                        ForEach(row.items) { tile in
+                            CalendarInsightTile(tile: tile)
+                        }
+                        if row.items.count == 1 {
+                            Color.clear.frame(maxWidth: .infinity)
+                        }
+                    }
                 }
             }
         }
@@ -315,13 +345,17 @@ struct CalendarView: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Monthly Achievements", subtitle: "Badges earned from trading behavior")
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(monthlyAchievementBadges) { badge in
-                        CalendarAchievementBadge(badge: badge)
+            VStack(spacing: 12) {
+                ForEach(monthlyAchievementRows) { row in
+                    HStack(spacing: 12) {
+                        ForEach(row.items) { badge in
+                            CalendarAchievementBadge(badge: badge)
+                        }
+                        if row.items.count == 1 {
+                            Color.clear.frame(maxWidth: .infinity)
+                        }
                     }
                 }
-                .padding(.vertical, 2)
             }
         }
         .premiumEntrance(active: didAppear, delay: 0.20)
@@ -331,26 +365,30 @@ struct CalendarView: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Quick Actions", subtitle: "Keep momentum after the review")
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                CalendarActionButton(title: "Export Month", icon: "square.and.arrow.up", tint: JPColors.blue) {
-                    showAction("Monthly export is ready for the existing Reports system.")
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    CalendarActionButton(title: "Export Month", icon: "square.and.arrow.up", tint: JPColors.blue) {
+                        showAction("Monthly export is ready for the existing Reports system.")
+                    }
+
+                    CalendarActionButton(title: "Share Statistics", icon: "chart.bar.xaxis", tint: JPColors.warning) {
+                        showAction("Statistics sharing placeholder is ready.")
+                    }
                 }
 
-                CalendarActionButton(title: "Share Statistics", icon: "chart.bar.xaxis", tint: JPColors.warning) {
-                    showAction("Statistics sharing placeholder is ready.")
-                }
+                HStack(spacing: 12) {
+                    CalendarActionButton(title: "AI Monthly Review", icon: "sparkles", tint: JPColors.purple) {
+                        showAction("AI monthly review will use saved trades and local insights when connected.")
+                    }
 
-                CalendarActionButton(title: "AI Monthly Review", icon: "sparkles", tint: JPColors.purple) {
-                    showAction("AI monthly review will use saved trades and local insights when connected.")
+                    NavigationLink {
+                        TradeHistoryView()
+                            .environmentObject(tradeViewModel)
+                    } label: {
+                        CalendarActionLabel(title: "Trade History", icon: "clock.arrow.circlepath", tint: JPColors.accent)
+                    }
+                    .buttonStyle(ScalingButtonStyle())
                 }
-
-                NavigationLink {
-                    TradeHistoryView()
-                        .environmentObject(tradeViewModel)
-                } label: {
-                    CalendarActionLabel(title: "Trade History", icon: "clock.arrow.circlepath", tint: JPColors.accent)
-                }
-                .buttonStyle(ScalingButtonStyle())
             }
         }
         .premiumEntrance(active: didAppear, delay: 0.24)
@@ -418,6 +456,10 @@ struct CalendarView: View {
         ]
     }
 
+    private var monthlyInsightRows: [CalendarInsightRow] {
+        monthlyInsightTiles.chunked(into: 2).map { CalendarInsightRow(items: $0) }
+    }
+
     private var monthlyAchievementBadges: [CalendarAchievementModel] {
         [
             .init(title: "Perfect Week", icon: "7.circle.fill", tint: JPColors.accent, isUnlocked: monthlyAnalytics.longestWinningStreak >= 5),
@@ -429,6 +471,10 @@ struct CalendarView: View {
             .init(title: "Morning Routine", icon: "sunrise.fill", tint: JPColors.warning, isUnlocked: monthlyAnalytics.averageDisciplineScore >= 75),
             .init(title: "Weekly Champion", icon: "rosette", tint: JPColors.blue, isUnlocked: monthlyAnalytics.netProfit > 0 && monthlyAnalytics.totalTrades >= 7)
         ]
+    }
+
+    private var monthlyAchievementRows: [CalendarAchievementRow] {
+        monthlyAchievementBadges.chunked(into: 2).map { CalendarAchievementRow(items: $0) }
     }
 
     private func changeMonth(by value: Int) {
@@ -527,8 +573,45 @@ struct CalendarView: View {
     }
 
     private func rr(_ value: Double) -> String {
-        value > 0 ? String(format: "%.2fRR", value) : "0.00RR"
+        value > 0 ? String(format: "%.2f R", value) : "0.00 R"
     }
+
+    private var heatmapRows: [CalendarHeatmapRow] {
+        let blanks = (0..<leadingBlankDays(for: displayedMonth)).map { CalendarHeatmapItem(id: "blank-\($0)", snapshot: nil) }
+        let days = dailySnapshots.map { CalendarHeatmapItem(id: "day-\($0.id.timeIntervalSince1970)", snapshot: $0) }
+        return (blanks + days).chunked(into: 7).enumerated().map { index, items in
+            let trailingBlanks = (items.count..<7).map { CalendarHeatmapItem(id: "trailing-\(index)-\($0)", snapshot: nil) }
+            return CalendarHeatmapRow(items: items + trailingBlanks)
+        }
+    }
+
+    private var heatmapHeight: CGFloat {
+        CGFloat(heatmapRows.count) * 46 + CGFloat(max(heatmapRows.count - 1, 0)) * 8
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else { return [] }
+        return stride(from: 0, to: count, by: size).map { start in
+            Array(self[start..<Swift.min(start + size, count)])
+        }
+    }
+}
+
+private struct CalendarHeatmapItem: Identifiable {
+    let id: String
+    let snapshot: CalendarDaySnapshot?
+}
+
+private struct CalendarHeatmapRow: Identifiable {
+    let id = UUID()
+    let items: [CalendarHeatmapItem]
+}
+
+private struct CalendarAchievementRow: Identifiable {
+    let id = UUID()
+    let items: [CalendarAchievementModel]
 }
 
 private enum CalendarTradeFilter: String, CaseIterable, Identifiable {
@@ -731,13 +814,19 @@ private struct CalendarHeroCard: View {
                     CalendarScoreRing(value: analytics.averageDisciplineScore, title: "Discipline")
                 }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    heroMetric("Total P/L", currency(analytics.netProfit), analytics.netProfit >= 0 ? JPColors.profit : JPColors.loss)
-                    heroMetric("Win Rate", percent(analytics.winRate), JPColors.accent)
-                    heroMetric("Trades", "\(analytics.totalTrades)", JPColors.blue)
-                    heroMetric("Average RR", analytics.averageRR > 0 ? String(format: "%.2fRR", analytics.averageRR) : "0.00RR", JPColors.warning)
-                    heroMetric("Journal", percent(analytics.journalCompletion), JPColors.purple)
-                    heroMetric("Streak", "\(analytics.currentStreak) days", JPColors.profit)
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        heroMetric("Total P/L", currency(analytics.netProfit), analytics.netProfit >= 0 ? JPColors.profit : JPColors.loss)
+                        heroMetric("Win Rate", percent(analytics.winRate), JPColors.accent)
+                    }
+                    HStack(spacing: 12) {
+                        heroMetric("Trades", "\(analytics.totalTrades)", JPColors.blue)
+                        heroMetric("Average RR", analytics.averageRR > 0 ? String(format: "%.2f R", analytics.averageRR) : "0.00 R", JPColors.warning)
+                    }
+                    HStack(spacing: 12) {
+                        heroMetric("Journal", percent(analytics.journalCompletion), JPColors.purple)
+                        heroMetric("Streak", "\(analytics.currentStreak) days", JPColors.profit)
+                    }
                 }
             }
         }
@@ -867,7 +956,7 @@ private struct CalendarHeatmapCell: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(isToday ? JPColors.accent : (isSelected ? color : color.opacity(0.25)), lineWidth: isToday || isSelected ? 2 : 1)
+                    .stroke(isToday || isSelected ? JPColors.accent : color.opacity(0.25), lineWidth: isToday || isSelected ? 2 : 1)
             )
             .shadow(color: color.opacity(snapshot.averageAIScore >= 90 ? 0.36 : 0.12), radius: snapshot.averageAIScore >= 90 ? 16 : 7, x: 0, y: 6)
             .scaleEffect(isSelected ? 1.06 : 1)
@@ -913,6 +1002,11 @@ private struct CalendarInsightTileModel: Identifiable {
     let tint: Color
 }
 
+private struct CalendarInsightRow: Identifiable {
+    let id = UUID()
+    let items: [CalendarInsightTileModel]
+}
+
 private struct CalendarInsightTile: View {
     let tile: CalendarInsightTileModel
 
@@ -938,6 +1032,7 @@ private struct CalendarInsightTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1011,7 +1106,7 @@ private struct CalendarActionLabel: View {
             Spacer(minLength: 0)
         }
         .padding(16)
-        .frame(minHeight: 64)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(JPColors.border, lineWidth: 1))
     }
@@ -1106,13 +1201,19 @@ private struct DailyReviewWorkspace: View {
                     }
                 }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    dailyMetric("Win Rate", percent(day.winRate), "target", JPColors.accent)
-                    dailyMetric("AI Score", day.averageAIScore == 0 ? "Pending" : "\(day.averageAIScore)", "sparkles", JPColors.blue)
-                    dailyMetric("Discipline", percent(Double(day.disciplineScore)), "checkmark.seal.fill", JPColors.profit)
-                    dailyMetric("Session", day.bestSession, "clock.fill", JPColors.warning)
-                    dailyMetric("Best Pair", day.bestPair, "chart.line.uptrend.xyaxis", JPColors.purple)
-                    dailyMetric("Worst Mistake", day.worstMistake, "exclamationmark.triangle.fill", JPColors.loss)
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        dailyMetric("Win Rate", percent(day.winRate), "target", JPColors.accent)
+                        dailyMetric("AI Score", day.averageAIScore == 0 ? "Pending" : "\(day.averageAIScore)", "sparkles", JPColors.blue)
+                    }
+                    HStack(spacing: 10) {
+                        dailyMetric("Discipline", percent(Double(day.disciplineScore)), "checkmark.seal.fill", JPColors.profit)
+                        dailyMetric("Session", day.bestSession, "clock.fill", JPColors.warning)
+                    }
+                    HStack(spacing: 10) {
+                        dailyMetric("Best Pair", day.bestPair, "chart.line.uptrend.xyaxis", JPColors.purple)
+                        dailyMetric("Worst Mistake", day.worstMistake, "exclamationmark.triangle.fill", JPColors.loss)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -1429,7 +1530,7 @@ private struct DailyTimelineTradeCard: View {
                         HStack(spacing: 8) {
                             badge(trade.direction.rawValue, color: trade.direction == .buy ? JPColors.profit : JPColors.loss)
                             badge(trade.status.rawValue, color: tint)
-                            badge("RR \(String(format: "%.2f", trade.riskReward))", color: JPColors.warning)
+                            badge(String(format: "%.2f R", trade.riskReward), color: JPColors.warning)
                         }
 
                         HStack(spacing: 10) {

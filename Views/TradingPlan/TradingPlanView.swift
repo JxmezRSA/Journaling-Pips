@@ -47,7 +47,7 @@ struct AnalyticsView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
-                    .padding(.bottom, 112)
+                    .padding(.bottom, 176)
                 }
                 .refreshable {
                     JPHaptics.selection()
@@ -172,6 +172,8 @@ struct AnalyticsView: View {
                         Text(filter.rawValue)
                             .font(.caption.weight(.black))
                             .foregroundStyle(selectedFilter == filter ? JPColors.background : JPColors.secondaryText)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 14)
                             .frame(height: 38)
                             .background(
@@ -187,6 +189,8 @@ struct AnalyticsView: View {
                 }
             }
             .padding(.vertical, 2)
+            .padding(.horizontal, 2)
+            .padding(.trailing, 20)
         }
         .opacity(didAppear ? 1 : 0)
         .offset(y: didAppear ? 0 : 10)
@@ -978,11 +982,13 @@ struct AnalyticsView: View {
 
     private var recommendationsSection: some View {
         let recommendations = viewModel.recommendations(for: analyticsTrades)
+        let visibleRecommendations = recommendations.isEmpty ? ["Keep logging trades to unlock sharper recommendations."] : recommendations
+        let subtitle = visibleRecommendations.count >= 3 ? "Three actions to improve your next trading week" : "Actions to improve your next trading week"
 
-        return section(title: "Recommendations", subtitle: "High-impact next actions from current analytics") {
+        return section(title: "Recommendations", subtitle: subtitle) {
             GlassCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    ForEach(recommendations.isEmpty ? ["Keep logging trades to unlock sharper recommendations."] : recommendations, id: \.self) { recommendation in
+                    ForEach(visibleRecommendations, id: \.self) { recommendation in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "arrow.up.forward.circle.fill")
                                 .foregroundStyle(JPColors.accent)
@@ -1982,7 +1988,7 @@ struct AnalyticsView: View {
     }
 
     private func riskReward(_ value: Double) -> String {
-        value > 0 ? "1:\(String(format: "%.2f", value))" : "--"
+        value > 0 ? "\(String(format: "%.2f", value)) R" : "--"
     }
 
     private func winRateV1(_ trades: [Trade]) -> Double {
@@ -2076,7 +2082,7 @@ struct AnalyticsView: View {
     }
 
     private func rrV1(_ value: Double) -> String {
-        value > 0 ? "\(String(format: "%.2f", value))R" : "--"
+        value > 0 ? "\(String(format: "%.2f", value)) R" : "--"
     }
 
     private func tintV1(_ value: Double) -> Color {
