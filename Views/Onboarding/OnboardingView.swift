@@ -177,18 +177,30 @@ private struct AuthSheet: View {
                     authField("Password", text: $viewModel.password, isSecure: true)
 
                     Button {
+                        JPHaptics.impact(.medium)
                         viewModel.submit()
                     } label: {
-                        Text(viewModel.isLoading ? "Loading..." : (viewModel.isLogin ? "Login" : "Register"))
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(JPColors.background)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        HStack(spacing: 10) {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .tint(JPColors.background)
+                            }
+
+                            Text(viewModel.isLoading ? "Working..." : (viewModel.isLogin ? "Login" : "Register"))
+                        }
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(JPColors.background)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(ScalingButtonStyle())
+                    .disabled(viewModel.isLoading)
+                    .accessibilityLabel(viewModel.isLogin ? "Login" : "Register")
+                    .accessibilityHint("Submits your email and password.")
 
                     Button {
+                        JPHaptics.selection()
                         viewModel.signInWithApple()
                     } label: {
                         Label("Sign in with Apple", systemImage: "apple.logo")
@@ -201,6 +213,7 @@ private struct AuthSheet: View {
                     .buttonStyle(ScalingButtonStyle())
 
                     Button {
+                        JPHaptics.selection()
                         viewModel.signInWithGoogle()
                     } label: {
                         Label("Google Sign-In", systemImage: "g.circle.fill")
@@ -214,6 +227,7 @@ private struct AuthSheet: View {
 
                     HStack {
                         Button(viewModel.isLogin ? "Create an account" : "I already have an account") {
+                            JPHaptics.selection()
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                 viewModel.isLogin.toggle()
                             }
@@ -222,6 +236,7 @@ private struct AuthSheet: View {
                         Spacer()
 
                         Button("Forgot Password") {
+                            JPHaptics.selection()
                             viewModel.resetPassword()
                         }
                     }
@@ -232,16 +247,25 @@ private struct AuthSheet: View {
                         Text(error)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(JPColors.warning)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .accessibilityLabel("Authentication error. \(error)")
                     }
 
                     if let success = viewModel.successMessage {
                         Text(success)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(JPColors.profit)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(JPColors.profit.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .accessibilityLabel("Authentication success. \(success)")
                     }
                 }
                 .padding(24)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .onChange(of: viewModel.cloudUser?.id) { _, userID in
             if userID != nil { onComplete() }
@@ -258,14 +282,19 @@ private struct AuthSheet: View {
             if isSecure {
                 SecureField(title, text: text)
                     .textContentType(.password)
+                    .submitLabel(.done)
                     .fieldStyle()
             } else {
                 TextField(title, text: text)
+                    .textContentType(title == "Email" ? .emailAddress : .name)
+                    .keyboardType(title == "Email" ? .emailAddress : .default)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .submitLabel(.next)
                     .fieldStyle()
             }
         }
+        .accessibilityElement(children: .contain)
     }
 }
 

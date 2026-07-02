@@ -280,7 +280,7 @@ struct TradeHistoryView: View {
                                 } label: {
                                     Label("Replay Trade", systemImage: "play.rectangle.fill")
                                 }
-                                .tint(.green)
+                                .tint(JPColors.profit)
                             }
                             .opacity(didAppear ? 1 : 0)
                             .offset(y: didAppear ? 0 : 18)

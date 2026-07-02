@@ -41,12 +41,14 @@ struct SettingsView: View {
                         cloudSyncSummarySection
                         preferencesSummarySection
                         dataDiagnosticsSummarySection
+                        supportFeedbackSection
                         advancedSettingsSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
                     .padding(.bottom, 112)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Settings")
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -430,10 +432,38 @@ struct SettingsView: View {
         }
     }
 
+    private var supportFeedbackSection: some View {
+        settingsSection(title: "Support & Feedback", subtitle: "Help improve Journaling Pips") {
+            SettingsActionButton(title: "⭐ Rate Journaling Pips", icon: "star.fill", tint: JPColors.warning) {
+                supportFeedbackAction("Rate Journaling Pips")
+            }
+            SettingsActionButton(title: "💬 Send Feedback", icon: "bubble.left.and.bubble.right.fill", tint: JPColors.accent) {
+                supportFeedbackAction("Send Feedback")
+            }
+            SettingsActionButton(title: "🐞 Report a Bug", icon: "ladybug.fill", tint: JPColors.loss) {
+                supportFeedbackAction("Report a Bug")
+            }
+            SettingsActionButton(title: "💡 Suggest a Feature", icon: "lightbulb.fill", tint: JPColors.warning) {
+                supportFeedbackAction("Suggest a Feature")
+            }
+            SettingsActionButton(title: "📧 Contact Support", icon: "envelope.fill", tint: JPColors.blue) {
+                supportFeedbackAction("Contact Support")
+            }
+            SettingsActionButton(title: "📜 Privacy Policy", icon: "hand.raised.fill", tint: JPColors.purple) {
+                supportFeedbackAction("Privacy Policy")
+            }
+            SettingsActionButton(title: "📄 Terms of Service", icon: "doc.text.fill", tint: JPColors.secondaryText) {
+                supportFeedbackAction("Terms of Service")
+            }
+            SettingsInfoRow(title: "ℹ️ Version", value: "Version 1.0.0", icon: "info.circle.fill")
+        }
+    }
+
     private var advancedSettingsSection: some View {
         settingsSection(title: "Advanced", subtitle: "Developer, sync, and export controls") {
             DisclosureGroup(isExpanded: $showAdvancedSettings) {
                 VStack(alignment: .leading, spacing: 22) {
+                    developerTestingSection
                     aiPreferencesSection
                     syncSettingsSection
                     productionReadinessSection
@@ -445,6 +475,20 @@ struct SettingsView: View {
                 SettingsDisclosureLabel(title: "Show Advanced", subtitle: "Cloud controls, diagnostics, exports, app info", icon: "gearshape.2.fill")
             }
             .tint(JPColors.accent)
+        }
+    }
+
+    private var developerTestingSection: some View {
+        settingsSection(title: "Developer Testing", subtitle: "Local-only TestFlight controls") {
+            SettingsToggleRow(title: "Developer: Unlock Premium", icon: "hammer.fill", isOn: $subscriptionManager.developerPremiumOverride)
+
+            Text("Development/testing only. This local toggle does not validate purchases, change StoreKit products, or affect App Store subscription status.")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(JPColors.warning)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
     }
 
@@ -601,6 +645,11 @@ struct SettingsView: View {
         }
 
         return renewalDate.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private func supportFeedbackAction(_ title: String) {
+        JPHaptics.selection()
+        debugPrint("SUPPORT FEEDBACK:", title)
     }
 
     private func runPremiumAction(_ action: () -> Void) {

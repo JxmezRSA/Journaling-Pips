@@ -25,9 +25,15 @@ struct ReplayStudioView: View {
                             canStepBackward: viewModel.visibleStageCount > 1,
                             canStepForward: viewModel.visibleStageCount < viewModel.stages.count,
                             onBack: viewModel.stepBackward,
-                            onPlayPause: { viewModel.isPlaying ? viewModel.pause() : viewModel.play() },
+                            onPlayPause: {
+                                JPHaptics.impact(.light)
+                                viewModel.isPlaying ? viewModel.pause() : viewModel.play()
+                            },
                             onForward: viewModel.stepForward,
-                            onRestart: viewModel.restart
+                            onRestart: {
+                                JPHaptics.selection()
+                                viewModel.restart()
+                            }
                         )
                         .premiumEntrance(active: didAppear, delay: 0.04)
 
@@ -36,12 +42,12 @@ struct ReplayStudioView: View {
                         }
                         .premiumEntrance(active: didAppear, delay: 0.08)
 
-                        ReplayScreenshotCarousel(screenshots: viewModel.screenshots(for: trade)) { screenshot in
+                        ReplayScreenshotCarousel(screenshots: viewModel.screenshotItems) { screenshot in
                             activeScreenshot = screenshot
                         }
                         .premiumEntrance(active: didAppear, delay: 0.12)
 
-                        ReplayPsychologyView(metrics: viewModel.psychology(for: trade))
+                        ReplayPsychologyView(metrics: viewModel.psychologyItems)
                             .premiumEntrance(active: didAppear, delay: 0.16)
 
                         ReplayAICommentaryView(commentary: viewModel.commentary, activeIndex: viewModel.commentaryIndex)
@@ -50,7 +56,7 @@ struct ReplayStudioView: View {
                         ReplayLessonsView(trade: trade)
                             .premiumEntrance(active: didAppear, delay: 0.24)
 
-                        ReplayStatisticsView(stats: viewModel.statistics(for: trade))
+                        ReplayStatisticsView(stats: viewModel.statisticItems)
                             .premiumEntrance(active: didAppear, delay: 0.28)
 
                         favoriteActions
@@ -150,6 +156,7 @@ struct ReplayStudioView: View {
             }
 
             Button {
+                JPHaptics.impact(.medium)
                 viewModel.exportPlaceholder()
             } label: {
                 Label("Export Replay PDF", systemImage: "doc.richtext.fill")
@@ -161,6 +168,8 @@ struct ReplayStudioView: View {
                     .shadow(color: JPColors.accent.opacity(0.24), radius: 18, x: 0, y: 10)
             }
             .buttonStyle(ScalingButtonStyle())
+            .accessibilityLabel("Export replay PDF")
+            .accessibilityHint("Shows the export placeholder for this replay")
         }
     }
 
@@ -190,6 +199,9 @@ struct ReplayStudioView: View {
             .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(isActive ? tint.opacity(0.32) : JPColors.border, lineWidth: 1))
         }
         .buttonStyle(ScalingButtonStyle())
+        .accessibilityLabel(title)
+        .accessibilityValue(isActive ? "Selected" : "Not selected")
+        .accessibilityHint(isActive ? "Removes this replay from \(title)" : "Saves this replay to \(title)")
     }
 }
 
@@ -237,6 +249,8 @@ private struct ReplayStudioImageViewer: View {
                         .background(.ultraThinMaterial, in: Circle())
                 }
                 .buttonStyle(ScalingButtonStyle())
+                .accessibilityLabel("Close screenshot viewer")
+                .accessibilityHint("Returns to Replay Studio")
 
                 Text(screenshot.title)
                     .font(.caption.weight(.bold))
@@ -251,10 +265,14 @@ private struct ReplayStudioImageViewer: View {
         .gesture(
             DragGesture(minimumDistance: 24).onEnded { value in
                 if scale <= 1.05, abs(value.translation.height) > 120 {
+                    JPHaptics.selection()
                     dismiss()
                 }
             }
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(screenshot.title) screenshot")
+        .accessibilityHint("Pinch to zoom, double tap to zoom, or drag down to dismiss")
     }
 
     private var magnify: some Gesture {

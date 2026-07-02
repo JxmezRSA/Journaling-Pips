@@ -107,6 +107,7 @@ struct PremiumPaywallView: View {
 
     private var trialButton: some View {
         Button {
+            JPHaptics.impact(.medium)
             if let selected = selectedProduct {
                 subscriptionManager.purchase(selected)
             } else {
@@ -136,6 +137,8 @@ struct PremiumPaywallView: View {
         }
         .buttonStyle(ScalingButtonStyle())
         .disabled(subscriptionManager.isPurchasing)
+        .accessibilityLabel("Start seven day free trial")
+        .accessibilityHint("Starts purchase flow for the selected premium plan.")
         .premiumEntrance(active: didAppear, delay: 0.12)
     }
 
@@ -143,6 +146,7 @@ struct PremiumPaywallView: View {
         GlassCard {
             VStack(spacing: 12) {
                 Button {
+                    JPHaptics.selection()
                     subscriptionManager.restorePurchases()
                 } label: {
                     Label(subscriptionManager.isRestoring ? "Restoring..." : "Restore Purchases", systemImage: "arrow.clockwise.circle.fill")
@@ -152,11 +156,13 @@ struct PremiumPaywallView: View {
                         .frame(height: 48)
                 }
                 .buttonStyle(ScalingButtonStyle())
+                .disabled(subscriptionManager.isRestoring)
+                .accessibilityHint("Checks your App Store account for active purchases.")
 
                 HStack {
-                    Link("Privacy Policy", destination: URL(string: "https://journalingpips.app/privacy")!)
+                    Link("Privacy Policy", destination: privacyURL)
                     Spacer()
-                    Link("Terms of Service", destination: URL(string: "https://journalingpips.app/terms")!)
+                    Link("Terms of Service", destination: termsURL)
                 }
                 .font(.caption.weight(.bold))
                 .foregroundStyle(JPColors.accent)
@@ -165,14 +171,20 @@ struct PremiumPaywallView: View {
                     Text(message)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(JPColors.profit)
+                        .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(JPColors.profit.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityLabel("Purchase message. \(message)")
                 }
 
                 if let error = subscriptionManager.errorMessage {
                     Text(error)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(JPColors.warning)
+                        .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityLabel("Purchase error. \(error)")
                 }
             }
         }
@@ -181,6 +193,7 @@ struct PremiumPaywallView: View {
 
     private var dismissButton: some View {
         Button {
+            JPHaptics.selection()
             dismiss()
         } label: {
             Text("Continue with Free")
@@ -190,7 +203,16 @@ struct PremiumPaywallView: View {
                 .frame(height: 50)
         }
         .buttonStyle(ScalingButtonStyle())
+        .accessibilityHint("Dismisses Premium and continues with the free plan.")
         .premiumEntrance(active: didAppear, delay: 0.2)
+    }
+
+    private var privacyURL: URL {
+        URL(string: "https://journalingpips.app/privacy") ?? URL(string: "https://journalingpips.app")!
+    }
+
+    private var termsURL: URL {
+        URL(string: "https://journalingpips.app/terms") ?? URL(string: "https://journalingpips.app")!
     }
 
     private var selectedProduct: Product? {
@@ -241,6 +263,8 @@ struct PremiumPaywallView: View {
             )
         }
         .buttonStyle(ScalingButtonStyle())
+        .accessibilityLabel("\(product?.displayName ?? fallbackTitle), \(product?.displayPrice ?? fallbackPrice)")
+        .accessibilityHint(isSelected ? "Selected plan." : "Double tap to select this plan.")
     }
 
     private func paywallFeature(_ title: String, free: String, premium: String, icon: String, tint: Color) -> some View {
@@ -266,6 +290,8 @@ struct PremiumPaywallView: View {
                     .foregroundStyle(JPColors.accent)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). Free: \(free). Premium: \(premium).")
     }
 
     private func statusPill(_ text: String, tint: Color) -> some View {

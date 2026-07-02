@@ -350,6 +350,8 @@ struct TradeReplayView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(ScalingButtonStyle())
+        .accessibilityLabel(title)
+        .accessibilityHint(isPrimary ? "Starts or pauses the replay timeline" : "Controls replay playback")
     }
 
     private func quoteCard(_ title: String, _ text: String) -> some View {
@@ -462,6 +464,7 @@ private struct ReplayEventCard: View {
         }
         .padding(.bottom, 12)
         .shadow(color: isCurrent ? event.tint.opacity(0.10) : Color.clear, radius: 20, x: 0, y: 10)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -469,6 +472,7 @@ private struct ReplayEventCard: View {
         if let slot = event.screenshotSlot {
             if let data = event.screenshotData, let image = UIImage(data: data) {
                 Button {
+                    JPHaptics.selection()
                     onScreenshotTap(data, slot)
                 } label: {
                     ZStack(alignment: .bottomTrailing) {
@@ -497,6 +501,8 @@ private struct ReplayEventCard: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("View \(slot.rawValue) screenshot")
+                .accessibilityHint("Opens the screenshot fullscreen")
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "photo.on.rectangle.angled")
@@ -572,6 +578,7 @@ private struct ReplayScreenshotViewer: View {
 
             VStack(alignment: .trailing, spacing: 10) {
                 Button {
+                    JPHaptics.selection()
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
@@ -581,6 +588,8 @@ private struct ReplayScreenshotViewer: View {
                         .background(.ultraThinMaterial, in: Circle())
                 }
                 .buttonStyle(ScalingButtonStyle())
+                .accessibilityLabel("Close screenshot viewer")
+                .accessibilityHint("Returns to Trade Replay")
 
                 Text(item.slot.rawValue)
                     .font(.caption.weight(.bold))
@@ -596,10 +605,14 @@ private struct ReplayScreenshotViewer: View {
             DragGesture(minimumDistance: 24)
                 .onEnded { value in
                     if scale <= 1.05, abs(value.translation.height) > 120 {
+                        JPHaptics.selection()
                         dismiss()
                     }
                 }
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(item.slot.rawValue) screenshot")
+        .accessibilityHint("Pinch to zoom, double tap to zoom, or drag down to dismiss")
     }
 
     private var magnificationGesture: some Gesture {

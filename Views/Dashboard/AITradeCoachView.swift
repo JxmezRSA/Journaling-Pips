@@ -8,6 +8,7 @@ struct AITradeCoachView: View {
     @StateObject private var insightViewModel = InsightViewModel()
     @State private var didAppear = false
     @State private var activeScreenshot: AICoachScreenshotItem?
+    @Query(sort: \Trade.date, order: .reverse) private var allTrades: [Trade]
 
     let trade: Trade
 
@@ -22,12 +23,17 @@ struct AITradeCoachView: View {
                     aiHistoryEntry
                     analysisControls
                     professionalReviewSection
+                    categoryScoresSection
                     scoreBreakdownSection
                     tradeSummarySection
                     chartAnalysisSection
                     coachEmptyState
                     strengthsSection
                     improvementsSection
+                    mistakesSection
+                    nextTradeFocusCard
+                    coachingTimelineSection
+                    weeklyMonthlySummarySection
                     coachMessageSection
                     generatedInsightsSection
                     warningsSection
@@ -243,6 +249,7 @@ struct AITradeCoachView: View {
                             .foregroundStyle(JPColors.warning)
 
                         Button {
+                            JPHaptics.selection()
                             viewModel.analyzeTrade(trade)
                         } label: {
                             Label("Retry", systemImage: "arrow.clockwise")
@@ -250,6 +257,7 @@ struct AITradeCoachView: View {
                                 .foregroundStyle(JPColors.warning)
                         }
                         .buttonStyle(ScalingButtonStyle())
+                        .accessibilityLabel("Retry AI analysis")
                     }
                     .padding(14)
                     .background(JPColors.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -257,6 +265,7 @@ struct AITradeCoachView: View {
 
                 HStack(spacing: 10) {
                     Button {
+                        JPHaptics.impact(.medium)
                         viewModel.analyzeTrade(trade)
                     } label: {
                         Label(viewModel.hasGeneratedReview ? "Analyze Again" : "Analyze Trade", systemImage: "sparkles")
@@ -268,8 +277,11 @@ struct AITradeCoachView: View {
                     }
                     .disabled(viewModel.isAnalyzing)
                     .buttonStyle(ScalingButtonStyle())
+                    .accessibilityLabel(viewModel.hasGeneratedReview ? "Analyze trade again" : "Analyze trade")
+                    .accessibilityHint("Generates a local or backend-ready coaching review.")
 
                     Button {
+                        JPHaptics.selection()
                         viewModel.regenerateReview(for: trade)
                     } label: {
                         Image(systemName: "arrow.clockwise")
@@ -280,6 +292,7 @@ struct AITradeCoachView: View {
                     }
                     .disabled(viewModel.isAnalyzing)
                     .buttonStyle(ScalingButtonStyle())
+                    .accessibilityLabel("Regenerate AI review")
                 }
             }
         }
@@ -292,6 +305,46 @@ struct AITradeCoachView: View {
             VStack(spacing: 12) {
                 ForEach(viewModel.breakdown) { item in
                     AICoachBreakdownCard(item: item, tint: scoreColor(item.score), animate: didAppear)
+                }
+            }
+        }
+    }
+
+    private var categoryScoresSection: some View {
+        section(title: "Category Scores", subtitle: "The four core coaching pillars") {
+            GlassCard {
+                VStack(spacing: 14) {
+                    categoryScoreRow(
+                        title: "Execution",
+                        score: viewModel.scoreValue(named: "Execution"),
+                        icon: "scope",
+                        tint: JPColors.accent,
+                        note: "Entry timing, confirmation, and management quality."
+                    )
+
+                    categoryScoreRow(
+                        title: "Risk Management",
+                        score: viewModel.scoreValue(named: "Risk Management"),
+                        icon: "shield.lefthalf.filled",
+                        tint: JPColors.profit,
+                        note: "Risk percent, R:R, sizing discipline, and stop quality."
+                    )
+
+                    categoryScoreRow(
+                        title: "Psychology",
+                        score: viewModel.scoreValue(named: "Psychology"),
+                        icon: "brain.head.profile",
+                        tint: JPColors.purple,
+                        note: "Emotion, confidence, patience, and impulse control."
+                    )
+
+                    categoryScoreRow(
+                        title: "Discipline",
+                        score: viewModel.disciplineScore(for: trade),
+                        icon: "checkmark.seal.fill",
+                        tint: JPColors.blue,
+                        note: "Plan adherence, mistake control, and review quality."
+                    )
                 }
             }
         }
@@ -499,6 +552,84 @@ struct AITradeCoachView: View {
         }
     }
 
+    private var mistakesSection: some View {
+        section(title: "Mistakes", subtitle: "What the coach would correct first") {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(viewModel.mistakes, id: \.self) { mistake in
+                    bulletRow(mistake, icon: "exclamationmark.triangle.fill", tint: JPColors.warning)
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    colors: [JPColors.warning.opacity(0.16), JPColors.elevatedSurface.opacity(0.94)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(JPColors.warning.opacity(0.24), lineWidth: 1)
+            )
+        }
+    }
+
+    private var nextTradeFocusCard: some View {
+        section(title: "Next Trade Focus", subtitle: "One action to carry into the next setup") {
+            GlassCard {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(JPColors.accent)
+                        .frame(width: 54, height: 54)
+                        .background(JPColors.accentSoft, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Coach Focus")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .textCase(.uppercase)
+
+                        Text(viewModel.nextTradeFocus)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private var weeklyMonthlySummarySection: some View {
+        section(title: "AI Coaching Summary", subtitle: "Weekly and monthly coaching from saved trades") {
+            VStack(spacing: 12) {
+                coachingSummaryCard(period: "Weekly AI Summary", trades: tradesWithin(days: 7), icon: "calendar.badge.clock", tint: JPColors.blue)
+                coachingSummaryCard(period: "Monthly AI Summary", trades: tradesWithin(days: 30), icon: "calendar", tint: JPColors.purple)
+            }
+        }
+    }
+
+    private var coachingTimelineSection: some View {
+        section(title: "Coach Timeline", subtitle: "How this review becomes a lesson") {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    let steps = coachingTimelineSteps
+                    ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                        coachingTimelineRow(
+                            title: step.title,
+                            detail: step.detail,
+                            icon: step.icon,
+                            tint: step.tint,
+                            isLast: index == steps.count - 1
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private var coachMessageSection: some View {
         section(title: "Final Verdict", subtitle: "Combined trade review and chart review") {
             GlassCard {
@@ -647,6 +778,7 @@ struct AITradeCoachView: View {
 
     private var saveReportButton: some View {
         Button {
+            JPHaptics.impact(.medium)
             viewModel.saveReview(for: trade)
         } label: {
             Label("Save Review to History", systemImage: "tray.and.arrow.down.fill")
@@ -658,6 +790,8 @@ struct AITradeCoachView: View {
                 .shadow(color: JPColors.accent.opacity(0.26), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(ScalingButtonStyle())
+        .accessibilityLabel("Save review to AI history")
+        .accessibilityHint("Stores this coaching review locally for future history.")
         .opacity(didAppear ? 1 : 0)
         .offset(y: didAppear ? 0 : 18)
     }
@@ -840,6 +974,247 @@ struct AITradeCoachView: View {
                 .foregroundStyle(JPColors.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func categoryScoreRow(title: String, score: Int, icon: String, tint: Color, note: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 36, height: 36)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(JPColors.primaryText)
+
+                    Text(note)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(JPColors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                Text("\(score)")
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(scoreColor(score))
+                    .monospacedDigit()
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(JPColors.graphite.opacity(0.9))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [tint.opacity(0.75), tint],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: didAppear ? proxy.size.width * CGFloat(score) / 100 : 0)
+                        .animation(.spring(response: 0.72, dampingFraction: 0.86), value: didAppear)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.88), value: score)
+                }
+            }
+            .frame(height: 8)
+        }
+        .padding(14)
+        .background(JPColors.graphite.opacity(0.58), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(tint.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    private var coachingTimelineSteps: [(title: String, detail: String, icon: String, tint: Color)] {
+        [
+            (
+                "Context Reviewed",
+                "\(trade.pair.isEmpty ? "Trade" : trade.pair) \(trade.direction.rawValue.lowercased()) in the \(trade.session.rawValue) session.",
+                "doc.text.magnifyingglass",
+                JPColors.blue
+            ),
+            (
+                "Scores Generated",
+                "Execution, risk, psychology, and discipline were scored against the journal data.",
+                "gauge.with.dots.needle.67percent",
+                JPColors.accent
+            ),
+            (
+                "Mistakes Identified",
+                viewModel.mistakes.first ?? "No major mistake detected. Protect this process.",
+                "exclamationmark.triangle.fill",
+                JPColors.warning
+            ),
+            (
+                "Focus Assigned",
+                viewModel.nextTradeFocus,
+                "scope",
+                JPColors.profit
+            ),
+            (
+                viewModel.hasSavedReview ? "Saved to AI History" : "Ready to Save",
+                viewModel.hasSavedReview ? "This review is stored locally and available in AI Review History." : "Save this review to build your coaching timeline.",
+                viewModel.hasSavedReview ? "checkmark.seal.fill" : "tray.and.arrow.down.fill",
+                viewModel.hasSavedReview ? JPColors.profit : JPColors.secondaryText
+            )
+        ]
+    }
+
+    private func coachingTimelineRow(title: String, detail: String, icon: String, tint: Color, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 13) {
+            VStack(spacing: 0) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 34, height: 34)
+                    .background(tint.opacity(0.14), in: Circle())
+
+                if !isLast {
+                    Rectangle()
+                        .fill(tint.opacity(0.22))
+                        .frame(width: 2, height: 34)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(JPColors.primaryText)
+
+                Text(detail)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(JPColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 4)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.bottom, isLast ? 0 : 10)
+    }
+
+    private func coachingSummaryCard(period: String, trades: [Trade], icon: String, tint: Color) -> some View {
+        let summary = coachingSummary(for: trades)
+
+        return GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(tint)
+                        .frame(width: 46, height: 46)
+                        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(period)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text(summary.headline)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text("\(summary.score)")
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(scoreColor(summary.score))
+                }
+
+                Text(summary.detail)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(JPColors.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 12) {
+                    miniSummaryValue("Trades", "\(trades.count)", tint: tint)
+                    miniSummaryValue("Win Rate", "\(Int(summary.winRate.rounded()))%", tint: JPColors.profit)
+                    miniSummaryValue("Net P/L", currency(summary.netProfit), tint: summary.netProfit >= 0 ? JPColors.profit : JPColors.loss)
+                }
+            }
+        }
+    }
+
+    private func miniSummaryValue(_ title: String, _ value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(JPColors.secondaryText)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.caption.weight(.black))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func tradesWithin(days: Int) -> [Trade] {
+        guard let startDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
+            return []
+        }
+
+        return allTrades.filter { $0.date >= startDate }
+    }
+
+    private func coachingSummary(for trades: [Trade]) -> (headline: String, detail: String, score: Int, winRate: Double, netProfit: Double) {
+        guard !trades.isEmpty else {
+            return (
+                "No saved trades in this period yet.",
+                "Log and review trades consistently so the coach can identify your current performance patterns.",
+                0,
+                0,
+                0
+            )
+        }
+
+        let netProfit = trades.reduce(0) { $0 + $1.profitLoss }
+        let wins = trades.filter { $0.status == .win }.count
+        let winRate = Double(wins) / Double(trades.count) * 100
+        let averageRR = trades.reduce(0) { $0 + $1.riskReward } / Double(trades.count)
+        let followedPlanRate = Double(trades.filter(\.followedPlan).count) / Double(trades.count) * 100
+        let score = min(100, max(0, Int((winRate * 0.35) + (min(max(averageRR, 0), 3) / 3 * 35) + (followedPlanRate * 0.30))))
+
+        let commonMistake = mostCommonMistake(in: trades)
+        let headline = netProfit >= 0 ? "Profitable period with \(Int(winRate.rounded()))% win rate." : "Red period with clear coaching data."
+        let detail: String
+
+        if let commonMistake {
+            detail = "Focus on reducing \(commonMistake.lowercased()). Average RR is \(number(averageRR))R and plan adherence is \(Int(followedPlanRate.rounded()))%."
+        } else if followedPlanRate >= 80 {
+            detail = "Strong discipline period. Keep protecting risk and repeat the setups with the cleanest execution."
+        } else {
+            detail = "Your next edge is process quality: complete the plan, document the setup, and review every exit."
+        }
+
+        return (headline, detail, score, winRate, netProfit)
+    }
+
+    private func mostCommonMistake(in trades: [Trade]) -> String? {
+        let tags = trades
+            .flatMap(\.mistakeTags)
+            .filter { $0 != .goodDiscipline }
+
+        let counts = Dictionary(grouping: tags, by: { $0 }).mapValues(\.count)
+        return counts.max { $0.value < $1.value }?.key.rawValue
+    }
+
+    private func currency(_ value: Double) -> String {
+        let sign = value >= 0 ? "+" : "-"
+        return "\(sign)$\(String(format: "%.0f", abs(value)))"
     }
 
     private func screenshotData(for slot: Trade.ScreenshotSlot) -> Data? {

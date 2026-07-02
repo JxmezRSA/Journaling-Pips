@@ -56,6 +56,9 @@ struct RiskSimulatorView: View {
                 reveal = true
             }
         }
+        .onChange(of: riskPerTrade) { _, _ in
+            JPHaptics.selection()
+        }
     }
 
     private var riskTint: Color {
@@ -91,6 +94,8 @@ struct RiskSimulatorView: View {
         .padding(13)
         .background(JPColors.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .animation(JPDesign.quickSpring, value: riskPerTrade)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value), \(subtitle)")
     }
 
     private func percent(_ value: Double) -> String {

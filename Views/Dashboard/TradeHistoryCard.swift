@@ -113,28 +113,11 @@ struct TradeHistoryCard: View {
     }
 
     private var thumbnail: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(resultColor.opacity(0.12))
-                .frame(width: 78, height: 86)
-
-            if let data = firstImageData, let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 78, height: 86)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(
-                        LinearGradient(colors: [.clear, Color.black.opacity(0.34)], startPoint: .top, endPoint: .bottom)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    )
-            } else {
-                Image(systemName: trade.status == .win ? "chart.line.uptrend.xyaxis" : "chart.line.downtrend.xyaxis")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(resultColor)
-            }
-        }
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(resultColor.opacity(0.24), lineWidth: 1))
+        TradeHistoryThumbnail(
+            imageData: firstImageData,
+            fallbackIcon: trade.status == .win ? "chart.line.uptrend.xyaxis" : "chart.line.downtrend.xyaxis",
+            tint: resultColor
+        )
     }
 
     private var firstImageData: Data? {
@@ -184,5 +167,47 @@ struct TradeHistoryCard: View {
     private func currency(_ value: Double) -> String {
         let sign = value >= 0 ? "+" : "-"
         return "\(sign)$\(Int(abs(value)).formatted())"
+    }
+}
+
+private struct TradeHistoryThumbnail: View {
+    let imageData: Data?
+    let fallbackIcon: String
+    let tint: Color
+    @State private var decodedImage: UIImage?
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(tint.opacity(0.12))
+                .frame(width: 78, height: 86)
+
+            if let decodedImage {
+                Image(uiImage: decodedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 78, height: 86)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        LinearGradient(colors: [.clear, Color.black.opacity(0.34)], startPoint: .top, endPoint: .bottom)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    )
+            } else {
+                Image(systemName: fallbackIcon)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(tint)
+            }
+        }
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(tint.opacity(0.24), lineWidth: 1))
+        .onAppear(perform: decodeIfNeeded)
+        .onChange(of: imageData) { _, _ in
+            decodedImage = nil
+            decodeIfNeeded()
+        }
+    }
+
+    private func decodeIfNeeded() {
+        guard decodedImage == nil, let imageData else { return }
+        decodedImage = UIImage(data: imageData)
     }
 }

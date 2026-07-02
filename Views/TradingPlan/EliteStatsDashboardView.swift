@@ -6,6 +6,7 @@ struct EliteStatsDashboardView: View {
     @StateObject private var viewModel = EliteStatsViewModel()
     @State private var didAppear = false
     @State private var equityScope = EliteEquityScope.allTime
+    @State private var cachedSnapshot: EliteStatsSnapshot?
 
     let onLogFirstTrade: () -> Void
 
@@ -14,7 +15,7 @@ struct EliteStatsDashboardView: View {
     }
 
     private var snapshot: EliteStatsSnapshot {
-        viewModel.snapshot(for: tradeViewModel.trades)
+        cachedSnapshot ?? viewModel.snapshot(for: tradeViewModel.trades)
     }
 
     private var scopedEquity: [EliteStatsPoint] {
@@ -70,10 +71,18 @@ struct EliteStatsDashboardView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
+            refreshSnapshot()
             withAnimation(JPDesign.smoothSpring) {
                 didAppear = true
             }
         }
+        .onChange(of: tradeViewModel.trades.count) { _, _ in
+            refreshSnapshot()
+        }
+    }
+
+    private func refreshSnapshot() {
+        cachedSnapshot = viewModel.snapshot(for: tradeViewModel.trades)
     }
 
     private var header: some View {
@@ -169,6 +178,10 @@ struct EliteStatsDashboardView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityLabel("Equity chart scope")
+                    .onChange(of: equityScope) { _, _ in
+                        JPHaptics.selection()
+                    }
 
                     HStack(spacing: 12) {
                         compactMetric("Starting", "$0", JPColors.secondaryText)
@@ -292,7 +305,15 @@ struct EliteStatsDashboardView: View {
                 Text("Elite statistics unlock after your first trade.")
                     .font(.title2.weight(.black))
                     .foregroundStyle(JPColors.primaryText)
-                Button(action: onLogFirstTrade) {
+                Text("Once you save trades, this screen will show expectancy, drawdown, pair rankings, psychology, and risk projections.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(JPColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    JPHaptics.impact(.light)
+                    onLogFirstTrade()
+                } label: {
                     Label("Log First Trade", systemImage: "plus.circle.fill")
                         .font(.headline.weight(.bold))
                         .foregroundStyle(JPColors.background)
@@ -301,9 +322,12 @@ struct EliteStatsDashboardView: View {
                         .background(JPColors.accent, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
                 .buttonStyle(ScalingButtonStyle())
+                .accessibilityLabel("Log first trade")
+                .accessibilityHint("Opens Add Trade")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .contain)
     }
 
     private var columns: [GridItem] {
@@ -332,6 +356,8 @@ struct EliteStatsDashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(JPColors.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value)")
     }
 
     private func metric(_ title: String, _ value: String, _ subtitle: String, _ icon: String, _ tint: Color) -> EliteStatsMetric {
@@ -397,6 +423,8 @@ struct EliteStatsMetricCard: View {
             }
             .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(metric.title), \(metric.value), \(metric.subtitle)")
     }
 }
 
@@ -428,6 +456,8 @@ struct EliteHeroStatCard: View {
             }
             .frame(maxWidth: .infinity, minHeight: 156, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value), \(subtitle)")
     }
 }
 
@@ -464,6 +494,8 @@ struct EliteRankingCard: View {
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(row.name), \(row.trades) trades, grade \(row.grade), win rate \(Int(row.winRate.rounded())) percent, profit \(currency(row.profit))")
     }
 
     private func stat(_ title: String, _ value: String) -> some View {

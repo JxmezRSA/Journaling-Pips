@@ -37,11 +37,18 @@ final class SubscriptionManager: ObservableObject {
     @Published private(set) var isLoadingProducts = false
     @Published private(set) var isPurchasing = false
     @Published private(set) var isRestoring = false
+    @Published var developerPremiumOverride: Bool {
+        didSet {
+            UserDefaults.standard.set(developerPremiumOverride, forKey: developerPremiumOverrideKey)
+            debugPrint("ENTITLEMENT UPDATED:", developerPremiumOverride ? "Developer Premium Override Enabled" : "Developer Premium Override Disabled")
+        }
+    }
     @Published var errorMessage: String?
     @Published var purchaseMessage: String?
 
     private let productIDs = [monthlyProductID, yearlyProductID]
     private var updatesTask: Task<Void, Never>?
+    private let developerPremiumOverrideKey = "jp.developerPremiumOverride"
     private let statusKey = "jp.subscription.status"
     private let renewalDateKey = "jp.subscription.renewalDate"
     private let trialStartDateKey = "jp.subscription.trialStartDate"
@@ -56,7 +63,7 @@ final class SubscriptionManager: ObservableObject {
     }
 
     var isPremiumUnlocked: Bool {
-        status == .premium || isTrialActive
+        developerPremiumOverride || status == .premium || isTrialActive
     }
 
     var isTrialActive: Bool {
@@ -79,6 +86,7 @@ final class SubscriptionManager: ObservableObject {
     }
 
     init() {
+        developerPremiumOverride = UserDefaults.standard.bool(forKey: developerPremiumOverrideKey)
         loadCachedEntitlement()
         updatesTask = listenForTransactions()
     }

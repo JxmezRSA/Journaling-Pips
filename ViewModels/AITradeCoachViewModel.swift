@@ -19,6 +19,7 @@ final class AITradeCoachViewModel: ObservableObject {
     @Published private(set) var breakdown: [AITradeScoreBreakdown] = []
     @Published private(set) var strengths: [String] = []
     @Published private(set) var improvements: [String] = []
+    @Published private(set) var mistakes: [String] = []
     @Published private(set) var psychologyNotes = "No psychology notes generated yet."
     @Published private(set) var nextTradeFocus = "Document the next trade with clear thesis, context, and lessons."
     @Published private(set) var riskFeedback = "Risk feedback will appear after analysis."
@@ -260,8 +261,9 @@ final class AITradeCoachViewModel: ObservableObject {
         overallScore = review.overallScore
         grade = review.grade
         gradeSummary = review.summary
-        strengths = review.strengths
-        improvements = review.improvements
+        strengths = threeItemList(review.strengths, fallback: ["Review saved locally", "Trade documented", "Coaching history updated"])
+        improvements = threeItemList(review.improvements, fallback: ["Regenerate to refresh improvement prompts", "Add richer context next time", "Review the exit against the thesis"])
+        mistakes = threeItemList(review.improvements, fallback: ["No stored mistake details in this saved review", "Regenerate to refresh mistake detection", "Use tags and notes for sharper coaching"])
         breakdown = [
             AITradeScoreBreakdown(title: "Execution", score: review.executionScore, explanation: explanation(for: "Execution", score: review.executionScore), icon: "scope"),
             AITradeScoreBreakdown(title: "Risk Management", score: review.riskManagementScore, explanation: explanation(for: "Risk Management", score: review.riskManagementScore), icon: "shield.lefthalf.filled"),
@@ -280,8 +282,9 @@ final class AITradeCoachViewModel: ObservableObject {
         overallScore = clamp(response.overallScore)
         grade = response.grade
         gradeSummary = response.summary
-        strengths = response.strengths
-        improvements = response.improvements
+        strengths = threeItemList(response.strengths, fallback: ["Trade was reviewed", "Risk context was evaluated", "Execution notes were processed"])
+        improvements = threeItemList(response.improvements, fallback: ["Add more journal context", "Review risk before the next entry", "Capture screenshots for visual analysis"])
+        mistakes = threeItemList(response.patternWarnings, fallback: improvements)
         psychologyNotes = response.psychologyNotes
         nextTradeFocus = response.nextTradeFocus
         riskFeedback = response.riskFeedback
@@ -412,8 +415,9 @@ final class AITradeCoachViewModel: ObservableObject {
         overallScore = clamp(Int(Double(execution + risk + psychology + journal + strategy) / 5.0))
         grade = letterGrade(for: overallScore)
         gradeSummary = gradeSummary(for: overallScore)
-        strengths = strengths(for: trade)
-        improvements = improvements(for: trade)
+        strengths = threeItemList(strengths(for: trade), fallback: ["Completed the review process", "Captured useful trade data", "Created a learning record"])
+        improvements = threeItemList(improvements(for: trade), fallback: ["Keep documenting the setup and execution.", "Review whether the exit followed the original thesis.", "Repeat only the highest-quality setup criteria."])
+        mistakes = threeItemList(mistakes(for: trade), fallback: ["No major mistake detected", "Keep protecting risk", "Repeat the strongest part of this process"])
         psychologyNotes = "Emotion: \(trade.emotion.isEmpty ? "Neutral" : trade.emotion). Confidence: \(Int(trade.confidence.rounded()))/10."
         nextTradeFocus = improvements.first ?? "Keep executing only A+ setups."
         riskFeedback = trade.riskPercent > 2 ? "Risk was above the preferred discipline range." : "Risk stayed within a reasonable local preview range."
@@ -618,6 +622,44 @@ final class AITradeCoachViewModel: ObservableObject {
         }
 
         return items.isEmpty ? ["Keep documenting the setup and execution.", "Review whether the exit followed the original thesis."] : items
+    }
+
+    private func mistakes(for trade: Trade) -> [String] {
+        var items = trade.mistakeTags
+            .filter { $0 != .goodDiscipline }
+            .map { "\($0.rawValue) showed up in this trade." }
+
+        if trade.riskReward > 0, trade.riskReward < 1 {
+            items.append("Reward did not justify the risk.")
+        }
+
+        if trade.riskPercent > 2 {
+            items.append("Risk was above the preferred discipline range.")
+        }
+
+        if trade.followedPlan == false {
+            items.append("The trade did not fully follow the plan.")
+        }
+
+        if journalLength(for: trade) < 100 {
+            items.append("Journal detail is too light for a strong review.")
+        }
+
+        if screenshotCount(for: trade) == 0 {
+            items.append("No screenshots were attached for visual proof.")
+        }
+
+        return items.isEmpty ? ["No major mistake detected. Protect this process."] : items
+    }
+
+    private func threeItemList(_ items: [String], fallback: [String]) -> [String] {
+        var result = Array(items.filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }.prefix(3))
+        for item in fallback where result.count < 3 {
+            if !result.contains(item) {
+                result.append(item)
+            }
+        }
+        return Array(result.prefix(3))
     }
 
     private func score(named title: String) -> Int {

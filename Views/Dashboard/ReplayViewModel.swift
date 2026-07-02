@@ -52,6 +52,9 @@ final class ReplayViewModel: ObservableObject {
     @Published private(set) var isPlaying = false
     @Published private(set) var aiReview: AITradeReview?
     @Published private(set) var commentaryIndex = 0
+    @Published private(set) var screenshotItems: [ReplayScreenshot] = []
+    @Published private(set) var statisticItems: [ReplayStudioStat] = []
+    @Published private(set) var psychologyItems: [ReplayPsychologyMetric] = []
     @Published var isFavorite = false
     @Published var isBestTrade = false
     @Published var isMistake = false
@@ -85,6 +88,9 @@ final class ReplayViewModel: ObservableObject {
         self.trade = trade
         aiReview = fetchAIReview(for: trade)
         stages = buildStages(for: trade)
+        screenshotItems = screenshots(for: trade)
+        statisticItems = statistics(for: trade)
+        psychologyItems = psychology(for: trade)
         visibleStageCount = min(max(visibleStageCount, 1), max(stages.count, 1))
         loadFlags(for: trade)
     }
@@ -202,7 +208,6 @@ final class ReplayViewModel: ObservableObject {
         let discipline = disciplineScore(for: trade)
         let fearPenalty = trade.emotion.localizedCaseInsensitiveContains("fear") || trade.emotion.localizedCaseInsensitiveContains("nervous") ? 35 : 12
         let greedPenalty = trade.emotion.localizedCaseInsensitiveContains("greed") || trade.emotion.localizedCaseInsensitiveContains("overconfident") ? 36 : 14
-        let revengePenalty = trade.mistakeTags.contains(.revengeTrade) ? 54 : 10
         return [
             psych("Confidence", confidence, "person.crop.circle.badge.checkmark", JPColors.blue),
             psych("Patience", trade.mistakeTags.contains(.enteredEarly) ? 48 : 82, "hourglass", JPColors.warning),

@@ -12,6 +12,7 @@ struct AnalyticsView: View {
     @State private var selectedWeekday = Calendar.current.component(.weekday, from: Date())
     @State private var selectedFilter = AnalyticsTimeFilter.allTime
     @State private var pairSort = PairPerformanceSort.profit
+    @State private var cachedAnalyticsTrades: [Trade]?
 
     let onLogFirstTrade: () -> Void
 
@@ -25,7 +26,7 @@ struct AnalyticsView: View {
     ]
 
     private var analyticsTrades: [Trade] {
-        viewModel.filteredTrades(tradeViewModel.trades, by: selectedFilter)
+        cachedAnalyticsTrades ?? viewModel.filteredTrades(tradeViewModel.trades, by: selectedFilter)
     }
 
     var body: some View {
@@ -41,33 +42,7 @@ struct AnalyticsView: View {
                         if tradeViewModel.trades.isEmpty {
                             emptyState
                         } else {
-                            if chartReveal < 1 {
-                                PremiumLoadingBlock(title: "Preparing analytics", subtitle: "Building charts, score, and smart insights from your journal.", symbolName: "chart.xyaxis.line")
-                            }
-                            sprintOverviewSection
-                            sprintChartsSection
-                            sprintSessionSection
-                            sprintPairPerformanceSection
-                            sprintMonthlyCardsSection
-                            sprintBestWorstSection
-                            intelligenceHero
-                            eliteStatsSection
-                            performanceSnapshots
-                            bestWorstSection
-                            bestSessionSection
-                            timeOfDaySection
-                            weekdayHeatmapSection
-                            monthlyPerformanceSection
-                            pairPerformanceSection
-                            strategyIntelligenceSection
-                            riskManagementSection
-                            psychologySection
-                            disciplineSection
-                            streaksSection
-                            aiInsightsCarousel
-                            recommendationsSection
-                            goalsSection
-                            exportSection
+                            analyticsV1Dashboard
                         }
                     }
                     .padding(.horizontal, 20)
@@ -92,6 +67,7 @@ struct AnalyticsView: View {
         .onAppear {
             insightViewModel.configure(context: modelContext)
             reportViewModel.configure(context: modelContext)
+            refreshAnalyticsTrades()
             debugPrint("ANALYTICS RECALCULATED:", analyticsTrades.count, "trades")
             debugPrint("EQUITY CURVE UPDATED:", viewModel.equityCurve(for: analyticsTrades).count, "points")
             withAnimation(.easeOut(duration: 0.45)) {
@@ -105,6 +81,7 @@ struct AnalyticsView: View {
             AnalyticsReportShareSheet(url: item.url)
         }
         .onChange(of: selectedFilter) { _, newValue in
+            refreshAnalyticsTrades()
             debugPrint("DASHBOARD FILTER CHANGED:", newValue.rawValue)
             debugPrint("ANALYTICS RECALCULATED:", analyticsTrades.count, "trades")
             debugPrint("EQUITY CURVE UPDATED:", viewModel.equityCurve(for: analyticsTrades).count, "points")
@@ -117,12 +94,17 @@ struct AnalyticsView: View {
             }
         }
         .onChange(of: tradeViewModel.trades.count) { _, _ in
+            refreshAnalyticsTrades()
             debugPrint("ANALYTICS RECALCULATED:", analyticsTrades.count, "trades")
             debugPrint("EQUITY CURVE UPDATED:", viewModel.equityCurve(for: analyticsTrades).count, "points")
         }
     }
 
     @Environment(\.modelContext) private var modelContext
+
+    private func refreshAnalyticsTrades() {
+        cachedAnalyticsTrades = viewModel.filteredTrades(tradeViewModel.trades, by: selectedFilter)
+    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -149,12 +131,12 @@ struct AnalyticsView: View {
                     .background(JPColors.accentSoft, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Your analytics will come alive after your first saved trade.")
+                    Text("Add your first trade to unlock analytics.")
                         .font(.title2.weight(.bold))
                         .foregroundStyle(JPColors.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Log a trade to unlock performance score, session analysis, strategy breakdowns, and insights.")
+                    Text("Your saved trades will power win rate, R multiple, pair performance, and monthly breakdowns.")
                         .font(.subheadline)
                         .foregroundStyle(JPColors.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -208,6 +190,205 @@ struct AnalyticsView: View {
         }
         .opacity(didAppear ? 1 : 0)
         .offset(y: didAppear ? 0 : 10)
+    }
+
+    private var analyticsV1Dashboard: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            performanceCenterEntry
+            TradingInsightsView(trades: analyticsTrades)
+            performanceOverviewV1
+            winLossBreakdownV1
+            pairPerformanceV1
+            monthlyPerformanceV1
+        }
+    }
+
+    private var performanceCenterEntry: some View {
+        NavigationLink {
+            PerformanceCenterView(trades: analyticsTrades)
+        } label: {
+            GlassCard {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundStyle(JPColors.warning)
+                        .frame(width: 54, height: 54)
+                        .background(
+                            LinearGradient(colors: [JPColors.accent.opacity(0.18), JPColors.purple.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            in: RoundedRectangle(cornerRadius: 19, style: .continuous)
+                        )
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Open Performance Center")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(JPColors.primaryText)
+
+                        Text("Track your grade, monthly improvement, weakest area, and next focus goal.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(JPColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(JPColors.accent)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .premiumEntrance(active: didAppear, delay: 0.02)
+    }
+
+    private var performanceOverviewV1: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHeader(title: "Performance Overview", subtitle: "\(selectedFilter.rawValue) stats from saved trades")
+
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    analyticsCardV1(title: "Total Trades", value: "\(analyticsTrades.count)", subtitle: "Saved entries", tint: JPColors.accent)
+                    analyticsCardV1(title: "Win Rate", value: percent(winRateV1(analyticsTrades)), subtitle: "Wins / losses", tint: JPColors.warning)
+                }
+
+                HStack(spacing: 12) {
+                    analyticsCardV1(title: "Net P/L", value: currency(netProfitV1(analyticsTrades)), subtitle: "Realized result", tint: tintV1(netProfitV1(analyticsTrades)))
+                    analyticsCardV1(title: "Average R", value: rrV1(averageRRV1(analyticsTrades)), subtitle: "Average R multiple", tint: JPColors.blue)
+                }
+
+                HStack(spacing: 12) {
+                    analyticsCardV1(title: "Best Trade", value: currency(bestTradeV1(analyticsTrades)), subtitle: "Largest win", tint: JPColors.profit)
+                    analyticsCardV1(title: "Worst Trade", value: currency(worstTradeV1(analyticsTrades)), subtitle: "Largest loss", tint: JPColors.loss)
+                }
+
+                HStack(spacing: 12) {
+                    analyticsCardV1(title: "Winning Streak", value: "\(winningStreakV1(analyticsTrades))", subtitle: "Longest run", tint: JPColors.profit)
+                    analyticsCardV1(title: "Losing Streak", value: "\(losingStreakV1(analyticsTrades))", subtitle: "Longest run", tint: JPColors.loss)
+                }
+            }
+        }
+    }
+
+    private var winLossBreakdownV1: some View {
+        let wins = analyticsTrades.filter { $0.status == .win }.count
+        let losses = analyticsTrades.filter { $0.status == .loss }.count
+        let breakeven = analyticsTrades.filter { $0.status == .breakeven }.count
+
+        return VStack(alignment: .leading, spacing: 14) {
+            SectionHeader(title: "Win/Loss Breakdown", subtitle: "Outcome count by saved trade")
+
+            VStack(spacing: 10) {
+                analyticsRowV1(title: "Wins", value: "\(wins)", detail: percent(rateV1(wins, analyticsTrades.count)), tint: JPColors.profit)
+                analyticsRowV1(title: "Losses", value: "\(losses)", detail: percent(rateV1(losses, analyticsTrades.count)), tint: JPColors.loss)
+                analyticsRowV1(title: "Breakeven", value: "\(breakeven)", detail: percent(rateV1(breakeven, analyticsTrades.count)), tint: JPColors.warning)
+            }
+            .padding(16)
+            .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(JPColors.border, lineWidth: 1))
+        }
+    }
+
+    private var pairPerformanceV1: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHeader(title: "Pair Performance", subtitle: "Performance grouped by instrument")
+
+            VStack(spacing: 10) {
+                ForEach(pairRowsV1(analyticsTrades), id: \.pair) { row in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(row.pair)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(JPColors.primaryText)
+                            Spacer()
+                            Text(currency(row.netProfit))
+                                .font(.headline.weight(.black))
+                                .foregroundStyle(tintV1(row.netProfit))
+                        }
+
+                        HStack {
+                            Text("\(row.trades) trades")
+                            Spacer()
+                            Text("Win \(percent(row.winRate))")
+                            Spacer()
+                            Text("Avg \(rrV1(row.averageRR))")
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(JPColors.secondaryText)
+                    }
+                    .padding(14)
+                    .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+            .padding(16)
+            .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(JPColors.border, lineWidth: 1))
+        }
+    }
+
+    private var monthlyPerformanceV1: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHeader(title: "Monthly Performance", subtitle: "Monthly net result and consistency")
+
+            VStack(spacing: 10) {
+                ForEach(monthRowsV1(analyticsTrades), id: \.month) { row in
+                    analyticsRowV1(
+                        title: row.month,
+                        value: currency(row.netProfit),
+                        detail: "\(row.trades) trades • \(percent(row.winRate)) win rate",
+                        tint: tintV1(row.netProfit)
+                    )
+                }
+            }
+            .padding(16)
+            .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(JPColors.border, lineWidth: 1))
+        }
+    }
+
+    private func analyticsCardV1(title: String, value: String, subtitle: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(JPColors.secondaryText)
+
+            Text(value)
+                .font(.system(size: 24, weight: .black, design: .rounded))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(subtitle)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(JPColors.secondaryText)
+                .lineLimit(1)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .background(JPColors.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(JPColors.border, lineWidth: 1))
+    }
+
+    private func analyticsRowV1(title: String, value: String, detail: String, tint: Color) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(JPColors.primaryText)
+                Text(detail)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(JPColors.secondaryText)
+            }
+
+            Spacer()
+
+            Text(value)
+                .font(.headline.weight(.black))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(14)
+        .background(JPColors.graphite, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var sprintOverviewSection: some View {
@@ -1803,11 +1984,127 @@ struct AnalyticsView: View {
     private func riskReward(_ value: Double) -> String {
         value > 0 ? "1:\(String(format: "%.2f", value))" : "--"
     }
+
+    private func winRateV1(_ trades: [Trade]) -> Double {
+        let resolved = trades.filter { $0.status == .win || $0.status == .loss }
+        guard !resolved.isEmpty else { return 0 }
+        return rateV1(resolved.filter { $0.status == .win }.count, resolved.count)
+    }
+
+    private func netProfitV1(_ trades: [Trade]) -> Double {
+        trades.reduce(0) { $0 + $1.profitLoss }
+    }
+
+    private func averageRRV1(_ trades: [Trade]) -> Double {
+        guard !trades.isEmpty else { return 0 }
+        return trades.reduce(0) { $0 + $1.riskReward } / Double(trades.count)
+    }
+
+    private func bestTradeV1(_ trades: [Trade]) -> Double {
+        trades.map(\.profitLoss).max() ?? 0
+    }
+
+    private func worstTradeV1(_ trades: [Trade]) -> Double {
+        trades.map(\.profitLoss).min() ?? 0
+    }
+
+    private func winningStreakV1(_ trades: [Trade]) -> Int {
+        longestStreakV1(trades, status: .win)
+    }
+
+    private func losingStreakV1(_ trades: [Trade]) -> Int {
+        longestStreakV1(trades, status: .loss)
+    }
+
+    private func longestStreakV1(_ trades: [Trade], status: Trade.Status) -> Int {
+        var current = 0
+        var longest = 0
+
+        for trade in trades.sorted(by: { $0.date < $1.date }) {
+            if trade.status == status {
+                current += 1
+                longest = max(longest, current)
+            } else if trade.status == .win || trade.status == .loss {
+                current = 0
+            }
+        }
+
+        return longest
+    }
+
+    private func pairRowsV1(_ trades: [Trade]) -> [AnalyticsPairRowV1] {
+        Dictionary(grouping: trades) { $0.pair.isEmpty ? "Unknown" : $0.pair }
+            .map { pair, pairTrades in
+                AnalyticsPairRowV1(
+                    pair: pair,
+                    trades: pairTrades.count,
+                    winRate: winRateV1(pairTrades),
+                    netProfit: netProfitV1(pairTrades),
+                    averageRR: averageRRV1(pairTrades)
+                )
+            }
+            .sorted { $0.netProfit > $1.netProfit }
+    }
+
+    private func monthRowsV1(_ trades: [Trade]) -> [AnalyticsMonthRowV1] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+
+        return Dictionary(grouping: trades) { trade in
+            calendar.date(from: calendar.dateComponents([.year, .month], from: trade.date)) ?? trade.date
+        }
+        .map { monthDate, monthTrades in
+            AnalyticsMonthRowV1(
+                month: formatter.string(from: monthDate),
+                date: monthDate,
+                trades: monthTrades.count,
+                winRate: winRateV1(monthTrades),
+                netProfit: netProfitV1(monthTrades)
+            )
+        }
+        .sorted { $0.date > $1.date }
+    }
+
+    private func rateV1(_ value: Int, _ total: Int) -> Double {
+        guard total > 0 else { return 0 }
+        return (Double(value) / Double(total)) * 100
+    }
+
+    private func percent(_ value: Double) -> String {
+        "\(Int(value.rounded()))%"
+    }
+
+    private func rrV1(_ value: Double) -> String {
+        value > 0 ? "\(String(format: "%.2f", value))R" : "--"
+    }
+
+    private func tintV1(_ value: Double) -> Color {
+        if value > 0 { return JPColors.profit }
+        if value < 0 { return JPColors.loss }
+        return JPColors.secondaryText
+    }
 }
 
 private enum AnalyticsChartStyle {
     case line
     case bar
+}
+
+private struct AnalyticsPairRowV1 {
+    let pair: String
+    let trades: Int
+    let winRate: Double
+    let netProfit: Double
+    let averageRR: Double
+}
+
+private struct AnalyticsMonthRowV1 {
+    let month: String
+    let date: Date
+    let trades: Int
+    let winRate: Double
+    let netProfit: Double
 }
 
 private struct AnalyticsReportShareSheet: UIViewControllerRepresentable {
